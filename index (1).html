@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Т—Недвижимость · Баллы и комиссии</title>
+<style>
+:root {
+  --bg-1: #0D1136;
+  --bg-2: #1A1F52;
+  --card: #FFFFFF;
+  --card-2: #F7F5F1;
+  --ink: #14183F;
+  --text-light: #FFFFFF;
+  --text-cream: #F3F0E8;
+  --gold: #B8935B;
+  --gold-light: #D4B483;
+  --gold-grad: linear-gradient(135deg, #D4B483 0%, #B8935B 55%, #A07C48 100%);
+  --coral: #D9694E;
+  --slate: #6B7280;
+  --slate-light: #B9BEDC;
+  --line: #E7E4DC;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+html, body {
+  height: 100%; margin: 0; padding: 0;
+  font-family: 'Inter', Arial, sans-serif;
+  background: linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-1) 100%);
+  color: var(--text-cream);
+}
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; }
+::-webkit-scrollbar { height: 10px; width: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 6px; }
+
+.wrap { max-width: 1360px; margin: 0 auto; }
+
+/* ---------- Header ---------- */
+.site-header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding: 22px 28px 16px 28px;
+  background: linear-gradient(120deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 60%);
+  border-bottom: 2px solid transparent;
+  border-image: var(--gold-grad) 1;
+  flex-wrap: wrap; gap: 14px;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  backdrop-filter: blur(6px);
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand img { width: 44px; height: 44px; flex-shrink: 0; display: block; }
+.brand h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em;
+  margin: 0; color: var(--text-light);
+}
+.brand p { margin: 2px 0 0 0; color: var(--slate-light); font-size: 12.5px; }
+
+.header-right { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.who-box { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--slate-light); }
+.who-avatar { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--gold); }
+
+.month-wrap { position: relative; }
+.month-box { display: flex; flex-direction: column; gap: 4px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate-light); }
+.month-box select {
+  font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; padding: 7px 10px;
+  border: 1.5px solid var(--gold); border-radius: 4px; background: var(--card); color: var(--ink); min-width: 160px;
+}
+.add-month-btn {
+  background: var(--gold-grad); color: #221708; border: none; border-radius: 5px;
+  padding: 8px 13px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.add-month-btn:hover { filter: brightness(1.08); }
+.add-month-form {
+  display: none; gap: 8px; align-items: flex-end; background: var(--card); border-radius: 8px; padding: 10px; margin-top: 8px;
+  position: absolute; right: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.35); z-index: 40;
+}
+.add-month-form.open { display: flex; }
+.add-month-form label { display: flex; flex-direction: column; gap: 3px; font-size: 10px; color: var(--slate); text-transform: uppercase; }
+.add-month-form select { font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--card-2); color: var(--ink); }
+
+/* ---------- Nav tabs ---------- */
+.tabs { display: flex; gap: 2px; padding: 12px 28px 0 28px; flex-wrap: wrap; align-items: center; justify-content: space-between; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 68px); z-index: 25; background: var(--bg-1); }
+.tabs-left { display: flex; flex-wrap: wrap; }
+.tab {
+  font-family: 'Inter', Arial, sans-serif; font-weight: 600; font-size: 13px;
+  padding: 10px 16px; background: transparent; border: none; border-bottom: 3px solid transparent;
+  color: var(--slate-light); cursor: pointer; transition: color .15s, border-color .15s;
+}
+.tab:hover { color: var(--gold-light); }
+.tab.active { color: var(--text-light); border-bottom-color: var(--gold); }
+.sync-note { font-size: 11px; color: var(--slate-light); display: flex; align-items: center; gap: 6px; padding-bottom: 10px; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #7FBF8A; box-shadow: 0 0 6px #7FBF8A; }
+.sync-dot.saving { background: var(--gold); box-shadow: 0 0 6px var(--gold); animation: pulse 0.9s infinite; }
+.sync-dot.off { background: var(--coral); box-shadow: 0 0 6px var(--coral); }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+
+.main { padding: 22px 28px 48px 28px; }
+.section-title {
+  font-family: Georgia, 'Times New Roman', serif; font-size: 16px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em; color: var(--gold-light); margin: 26px 0 13px 0;
+}
+.section-title:first-child { margin-top: 0; }
+.card {
+  background: var(--card); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+  padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.22); color: var(--ink);
+}
+.muted { color: var(--slate); font-size: 13px; }
+.muted.on-dark { color: var(--slate-light); }
+.muted.small { font-size: 12px; margin-top: 10px; }
+.empty { padding: 12px 0; }
+
+/* ---------- KPI ---------- */
+.dash-top { display: flex; gap: 16px; flex-wrap: wrap; }
+.kpi {
+  background: var(--card); border-radius: 10px; padding: 16px 22px; min-width: 190px; flex: 1;
+  border-left: 4px solid; border-image: var(--gold-grad) 1; color: var(--ink);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+}
+.kpi-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate); margin-bottom: 6px; }
+.kpi-value { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 23px; font-weight: 700; color: var(--ink); }
+.kpi-value.gold { background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* ---------- Gauges ---------- */
+.seal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px,1fr)); gap: 16px; }
+.seal-card { background: var(--card); border-radius: 10px; padding: 16px; display: flex; gap: 14px; align-items: center; box-shadow: 0 8px 24px rgba(0,0,0,0.22); color: var(--ink); }
+.seal-num { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 21px; font-weight: 700; fill: var(--ink); }
+.seal-sub { font-size: 9px; fill: var(--slate); text-transform: uppercase; letter-spacing: 0.06em; }
+.seal-tier { font-family: Georgia, serif; font-size: 13px; font-weight: 700; fill: var(--gold); }
+.seal-meta h3 { font-family: Georgia, serif; margin: 0 0 2px 0; font-size: 15px; color: var(--ink); }
+.thresh-row { display: flex; flex-direction: column; gap: 2px; font-size: 11px; font-family: 'SFMono-Regular', Consolas, monospace; color: var(--slate); margin: 8px 0; }
+.thresh-row .hit { color: #8A6A32; font-weight: 700; }
+.bonus-row { display: flex; gap: 14px; font-size: 12px; margin-bottom: 6px; color: var(--ink); }
+.bonus-final { font-size: 13px; font-weight: 700; color: #8A6A32; }
+.warn-pill { margin-top: 8px; display: inline-block; background: #FBE7E0; color: #B8492F; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+
+/* ---------- Tables ---------- */
+.table-scroll { overflow-x: auto; margin-bottom: 8px; background: var(--card); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.22); }
+.table-scroll .tbl { min-width: 620px; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--ink); }
+.tbl th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--slate); border-bottom: 1.5px solid var(--gold); padding: 10px; white-space: nowrap; }
+.tbl td { padding: 9px 10px; border-bottom: 1px solid var(--line); font-family: 'SFMono-Regular', Consolas, monospace; white-space: nowrap; }
+.tbl td.bad { color: var(--coral); font-weight: 700; }
+.tbl td.good { color: #7C9A6E; font-weight: 700; }
+.tbl td.gold { color: #9A7A42; font-weight: 700; }
+.tbl td.rank { font-family: Georgia, serif; font-weight: 700; color: var(--gold); text-align: center; }
+.tbl td.rowname { font-family: 'Inter', Arial, sans-serif; font-weight: 600; color: var(--ink); white-space: normal; }
+
+/* ---------- Entry form ---------- */
+.entry { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .entry { grid-template-columns: 1fr; } }
+.form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.form-row label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--slate); text-transform: uppercase; letter-spacing: .05em; flex: 1; min-width: 140px; }
+select, input[type=text], input[type=number], input[type=password] {
+  font-family: 'Inter', Arial, sans-serif; font-size: 13px; padding: 8px 10px;
+  border: 1.5px solid var(--line); border-radius: 5px; background: var(--card-2); color: var(--ink); width: 100%;
+}
+.counters { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px,1fr)); gap: 10px; margin-bottom: 10px; }
+.counter { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--card-2); }
+.counter.boosted { background: linear-gradient(135deg, #FBF0DE, #F5E2C2); border-color: var(--gold); }
+.counter.boosted .counter-label i { color: #A85A3A; }
+.counter-label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--ink); }
+.counter-label i { font-style: normal; color: #9A7A42; font-weight: 700; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 11px; }
+.counter-controls { display: flex; align-items: center; justify-content: space-between; }
+.counter-controls button { width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--gold); background: #fff; color: #9A7A42; font-size: 15px; cursor: pointer; line-height: 1; }
+.counter-controls button:hover { background: var(--gold-grad); color: #fff; border-color: transparent; }
+.counter-controls span { font-family: 'SFMono-Regular', Consolas, monospace; font-weight: 700; color: var(--ink); }
+
+.entry-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-top: 1px dashed var(--line); padding-top: 14px; color: var(--ink); }
+.entry-footer .bad { color: var(--coral); font-style: normal; margin-left: 6px; font-size: 12px; font-weight: 700; }
+.entry-footer .good { color: #6E8C60; font-style: normal; margin-left: 6px; font-size: 12px; font-weight: 700; }
+
+.btn-primary { background: var(--gold-grad); color: #221708; border: none; border-radius: 5px; padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--slate); border-radius: 5px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+.btn-ghost:hover { border-color: var(--coral); color: var(--coral); }
+.btn-ghost.small { padding: 2px 8px; }
+
+.log-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: var(--ink); flex-wrap: wrap; gap: 8px; }
+
+/* ---------- Team ---------- */
+.add-rop { margin-bottom: 20px; }
+.inline-add { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.inline-add.small { margin-top: 12px; }
+.inline-add input { flex: 1; min-width: 140px; }
+.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px,1fr)); gap: 16px; }
+.team-card-head { display: flex; justify-content: space-between; align-items: center; }
+.team-card-head h3 { font-family: Georgia, serif; color: var(--ink); margin: 0; }
+.agent-list { list-style: none; padding: 0; margin: 10px 0; max-height: 220px; overflow-y: auto; }
+.agent-list li { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink); }
+
+/* ---------- Settings ---------- */
+.settings { display: flex; flex-direction: column; gap: 18px; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px,1fr)); gap: 14px; }
+.settings-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--slate); font-weight: 600; }
+.settings-field input { font-family: 'SFMono-Regular', Consolas, monospace; }
+.settings-field.readonly { justify-content: center; }
+.settings-field.readonly span { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 17px; color: #9A7A42; font-weight: 700; }
+
+.boost-table { display: flex; flex-direction: column; gap: 4px; overflow-x: auto; }
+.boost-row { display: grid; grid-template-columns: 88px repeat(9, 62px); gap: 4px; align-items: center; }
+.boost-row.boost-head span { font-size: 9.5px; text-align: center; color: var(--slate); text-transform: uppercase; letter-spacing: .03em; }
+.boost-week { font-size: 12px; font-weight: 700; color: var(--ink); }
+.boost-cell { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; font-weight: 700; border: 1px solid var(--line); border-radius: 4px; padding: 6px 0; background: var(--card-2); color: var(--slate); cursor: pointer; }
+.boost-cell.on { background: var(--gold-grad); color: #fff; border-color: transparent; }
+
+/* ---------- Admin / export ---------- */
+.admin-card { border: 1.5px dashed var(--gold); }
+.admin-badge { display: inline-block; background: var(--gold-grad); color: #221708; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+.lock-note { display: flex; align-items: center; gap: 8px; color: var(--slate); font-size: 13px; }
+
+/* ---------- Loading / empty states ---------- */
+.loading-screen { display: flex; align-items: center; justify-content: center; min-height: 60vh; flex-direction: column; gap: 14px; color: var(--slate-light); }
+.spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.2); border-top-color: var(--gold); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { }
+}
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <div>Загрузка данных…</div>
+  </div>
+</div>
+
+<!--
+  ============================================================
+  НАСТРОЙКА (обязательно перед использованием):
+  1. Создайте проект на https://supabase.com (бесплатно)
+  2. Выполните файл supabase_schema.sql в Supabase → SQL Editor
+  3. Project Settings → API → скопируйте Project URL и anon public key
+  4. Вставьте их ниже вместо PASTE_YOUR... и сохраните файл
+  5. Загрузите index.html в репозиторий на GitHub, включите GitHub
+     Pages (Settings → Pages → Source: выбрать ветку/папку) — сайт
+     будет доступен по ссылке вида https://ваш-логин.github.io/репозиторий/
+  ============================================================
+-->
+<script>
+  window.SUPABASE_URL = "https://otponkovvffoekilrdfi.supabase.co/rest/v1/";
+  window.SUPABASE_ANON_KEY = "sb_publishable_at50zCEWjfDjmD3obZnWKw_MUaxZZL1";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     ДАННЫЕ ПО УМОЛЧАНИЮ / КОНСТАНТЫ
+  ============================================================ */
+  var ACTIONS = [
+    { key: "secondary", label: "Объект.вторичка", short: "Вторичка", def: 0.5 },
+    { key: "photo", label: "Фото объекта", short: "Фото", def: 0.5 },
+    { key: "banner", label: "Баннер", short: "Баннер", def: 1 },
+    { key: "showing", label: "Проведённый показ / встреча", short: "Показ", def: 1 },
+    { key: "meeting", label: "Назначенная встреча", short: "Встреча (назн.)", def: 0.5 },
+    { key: "booking", label: "Бронь", short: "Бронь", def: 1 },
+    { key: "mortgage", label: "Ипотека", short: "Ипотека", def: 1 },
+    { key: "deposit", label: "Задаток / Передача в ДДУ", short: "Задаток/ДДУ", def: 2 },
+    { key: "deal", label: "Сделка", short: "Сделка", def: 3 }
+  ];
+  var CITIES = ["Тюмень", "Екатеринбург"];
+  var RUS_MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+  var WEEKS = [1, 2, 3, 4];
+  var LOGO_B64 = "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";
+
+  function defaultSettings() {
+    var points = {};
+    ACTIONS.forEach(function (a) { points[a.key] = a.def; });
+    return {
+      points: points, weeklyMin: 4.5, weeksPerMonth: 4,
+      tierMult: { t05: 1, t1: 1.4, t2: 2 }, revenuePlan: 500000,
+      commission: { p1: 30, p2: 60, p3: 95, aRate: 42, aStandard: 45, aDealsCount: 3, bRate: 45, cRate: 48, dRate: 50 },
+      weekBoosts: { 1: ["meeting","secondary","banner","mortgage"], 2: ["showing","mortgage","booking"], 3: ["deposit","deal","showing"], 4: ["deal","deposit","secondary"] }
+    };
+  }
+
+  function monthKey(year, monthIdx) { return year + "-" + String(monthIdx + 1).padStart(2, "0"); }
+  function monthLabel(key) { var p = key.split("-"); return RUS_MONTHS[Number(p[1]) - 1] + " " + p[0]; }
+  function monthKeyAddMonths(key, delta) {
+    var p = key.split("-"); var y = Number(p[0]), m = Number(p[1]) - 1;
+    var total = y * 12 + m + delta; var ny = Math.floor(total / 12), nm = ((total % 12) + 12) % 12;
+    return monthKey(ny, nm);
+  }
+  function uid() { return Math.random().toString(36).slice(2, 10); }
+  function entryDocId(monthKeyV, agentId, week) { return monthKeyV + "_" + agentId + "_w" + week; }
+
+  function entryPoints(counts, points, week, weekBoosts) {
+    var boosted = (weekBoosts && weekBoosts[week]) || [];
+    var total = 0;
+    ACTIONS.forEach(function (a) {
+      var mult = boosted.indexOf(a.key) >= 0 ? 2 : 1;
+      total += (counts[a.key] || 0) * (points[a.key] || 0) * mult;
+    });
+    return total;
+  }
+  function fmtPts(n) { return (Math.round((n || 0) * 10) / 10).toLocaleString("ru-RU"); }
+  function fmtRub(n) { return Math.round(n || 0).toLocaleString("ru-RU") + " ₽"; }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* ============================================================
+     СЛОЙ ДАННЫХ: Supabase (общая база, одинаковая для всех)
+  ============================================================ */
+  var supa = null;
+  var AppState = {
+    ready: false,
+    configOk: null,
+    isAdmin: sessionStorage.getItem("rop-admin") === "1",
+    teams: [],
+    agents: [],
+    monthOrder: [],
+    currentMonth: null,
+    monthSettings: null,
+    monthEntries: [],
+    syncStatus: "ok"
+  };
+
+  function setSync(status) {
+    AppState.syncStatus = status;
+    var dot = document.getElementById("sync-dot");
+    if (dot) dot.className = "sync-dot" + (status === "saving" ? " saving" : status === "off" ? " off" : "");
+  }
+
+  function checkConfig() {
+    var url = window.SUPABASE_URL, key = window.SUPABASE_ANON_KEY;
+    if (!url || !key || url.indexOf("PASTE_YOUR") === 0 || key.indexOf("PASTE_YOUR") === 0) return false;
+    return true;
+  }
+
+  var channels = [];
+  async function dbInit() {
+    AppState.configOk = checkConfig();
+    if (!AppState.configOk) { AppState.ready = true; render(); return; }
+
+    supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+    await Promise.all([loadTeams(), loadAgents(), loadMonthOrder()]);
+    if (AppState.monthOrder.length) {
+      AppState.currentMonth = AppState.monthOrder[AppState.monthOrder.length - 1];
+      await loadCurrentMonth();
+    }
+    AppState.ready = true;
+    render();
+    subscribeRealtime();
+  }
+
+  async function loadTeams() {
+    var { data, error } = await supa.from("teams").select("*").order("name");
+    if (!error) AppState.teams = data || [];
+  }
+  async function loadAgents() {
+    var { data, error } = await supa.from("agents").select("*");
+    if (!error) AppState.agents = (data || []).map(function (r) { return { id: r.id, name: r.name, ropId: r.rop_id }; });
+  }
+  async function loadMonthOrder() {
+    var { data, error } = await supa.from("month_order").select("key").order("key");
+    if (!error) AppState.monthOrder = (data || []).map(function (r) { return r.key; });
+  }
+  async function loadCurrentMonth() {
+    var key = AppState.currentMonth;
+    var { data: mData } = await supa.from("months").select("settings").eq("key", key).maybeSingle();
+    AppState.monthSettings = (mData && mData.settings) || defaultSettings();
+    var { data: eData } = await supa.from("entries").select("*").eq("month_key", key);
+    AppState.monthEntries = (eData || []).map(function (r) {
+      return { agentId: r.agent_id, week: r.week, counts: r.counts || {}, dealSum: Number(r.deal_sum) || 0 };
+    });
+  }
+
+  function subscribeRealtime() {
+    channels.forEach(function (ch) { supa.removeChannel(ch); });
+    channels = [];
+    ["teams", "agents", "month_order", "months", "entries"].forEach(function (table) {
+      var ch = supa.channel("live-" + table)
+        .on("postgres_changes", { event: "*", schema: "public", table: table }, async function () {
+          if (table === "teams") await loadTeams();
+          else if (table === "agents") await loadAgents();
+          else if (table === "month_order") {
+            var before = AppState.monthOrder.slice();
+            await loadMonthOrder();
+            if (JSON.stringify(before) !== JSON.stringify(AppState.monthOrder) && !AppState.currentMonth && AppState.monthOrder.length) {
+              AppState.currentMonth = AppState.monthOrder[AppState.monthOrder.length - 1];
+              await loadCurrentMonth();
+            }
+          } else if (table === "months" && AppState.currentMonth) {
+            var { data } = await supa.from("months").select("settings").eq("key", AppState.currentMonth).maybeSingle();
+            if (data) AppState.monthSettings = data.settings;
+          } else if (table === "entries" && AppState.currentMonth) {
+            var { data: eData } = await supa.from("entries").select("*").eq("month_key", AppState.currentMonth);
+            AppState.monthEntries = (eData || []).map(function (r) {
+              return { agentId: r.agent_id, week: r.week, counts: r.counts || {}, dealSum: Number(r.deal_sum) || 0 };
+            });
+          }
+          render();
+        })
+        .subscribe();
+      channels.push(ch);
+    });
+  }
+
+  async function switchMonth(key) {
+    AppState.currentMonth = key;
+    AppState.monthSettings = null;
+    AppState.monthEntries = [];
+    render();
+    await loadCurrentMonth();
+    render();
+  }
+
+  // ---------- Записи (баллы за неделю) ----------
+  async function saveEntry(entry) {
+    if (!supa || !AppState.currentMonth) return;
+    setSync("saving");
+    var id = entryDocId(AppState.currentMonth, entry.agentId, entry.week);
+    var row = { id: id, month_key: AppState.currentMonth, week: entry.week, agent_id: entry.agentId, counts: entry.counts, deal_sum: entry.dealSum, updated_at: new Date().toISOString() };
+    var { error } = await supa.from("entries").upsert(row);
+    setSync(error ? "off" : "ok");
+    if (!error) await loadCurrentMonth();
+  }
+  async function deleteEntryDoc(agentId, week) {
+    if (!supa || !AppState.currentMonth) return;
+    setSync("saving");
+    var id = entryDocId(AppState.currentMonth, agentId, week);
+    var { error } = await supa.from("entries").delete().eq("id", id);
+    setSync(error ? "off" : "ok");
+    if (!error) await loadCurrentMonth();
+  }
+
+  // ---------- Настройки месяца ----------
+  async function saveMonthSettings(settings) {
+    if (!supa || !AppState.currentMonth) return;
+    setSync("saving");
+    var { error } = await supa.from("months").upsert({ key: AppState.currentMonth, settings: settings });
+    setSync(error ? "off" : "ok");
+    AppState.monthSettings = settings;
+    render();
+  }
+
+  // ---------- Ростер ----------
+  async function saveTeamsFull(list) {
+    setSync("saving");
+    var rows = list.map(function (t) { return { id: t.id, name: t.name, city: t.city, count: t.count }; });
+    var { error } = await supa.from("teams").upsert(rows);
+    setSync(error ? "off" : "ok");
+    await loadTeams(); render();
+  }
+  async function saveAgentsFull(list) {
+    setSync("saving");
+    var rows = list.map(function (a) { return { id: a.id, name: a.name, rop_id: a.ropId }; });
+    var { error } = await supa.from("agents").upsert(rows);
+    setSync(error ? "off" : "ok");
+    await loadAgents(); render();
+  }
+  async function deleteTeamRow(id) {
+    setSync("saving");
+    await supa.from("teams").delete().eq("id", id);
+    setSync("ok"); await loadTeams(); render();
+  }
+  async function deleteAgentRow(id) {
+    setSync("saving");
+    await supa.from("agents").delete().eq("id", id);
+    setSync("ok"); await loadAgents(); render();
+  }
+
+  async function createMonth(key) {
+    if (AppState.monthOrder.indexOf(key) === -1) {
+      setSync("saving");
+      await supa.from("month_order").upsert({ key: key });
+      var baseSettings = AppState.monthSettings || defaultSettings();
+      await supa.from("months").upsert({ key: key, settings: JSON.parse(JSON.stringify(baseSettings)) });
+      await loadMonthOrder();
+      setSync("ok");
+    }
+    await switchMonth(key);
+  }
+
+  // ---------- Данные произвольного месяца (для комиссий — разовое чтение) ----------
+  var prevMonthCache = {};
+  async function loadPrevMonthData(key) {
+    if (prevMonthCache.hasOwnProperty(key)) return prevMonthCache[key];
+    var { data: mData } = await supa.from("months").select("settings").eq("key", key).maybeSingle();
+    if (!mData) { prevMonthCache[key] = null; return null; }
+    var { data: eData } = await supa.from("entries").select("*").eq("month_key", key);
+    var result = {
+      settings: mData.settings,
+      entries: (eData || []).map(function (r) { return { agentId: r.agent_id, week: r.week, counts: r.counts || {}, dealSum: Number(r.deal_sum) || 0 }; })
+    };
+    prevMonthCache[key] = result;
+    return result;
+  }
+
+  // ---------- Админ-доступ (пин-код через RPC, сам пин не хранится в JS) ----------
+  async function tryAdminPin(pin) {
+    var { data, error } = await supa.rpc("verify_admin_pin", { pin: pin });
+    if (error) return false;
+    return data === true;
+  }
+  async function setAdminPin(oldPin, newPin) {
+    var { data, error } = await supa.rpc("set_admin_pin", { old_pin: oldPin || "", new_pin: newPin });
+    if (error) return false;
+    return data === true;
+  }
+  function agentById(id) {
+    for (var i = 0; i < AppState.agents.length; i++) if (AppState.agents[i].id === id) return AppState.agents[i];
+    return null;
+  }
+  function teamById(id) {
+    for (var i = 0; i < AppState.teams.length; i++) if (AppState.teams[i].id === id) return AppState.teams[i];
+    return null;
+  }
+
+  function computeTeamStats() {
+    var settings = AppState.monthSettings || defaultSettings();
+    var entries = AppState.monthEntries || [];
+    return AppState.teams.map(function (t) {
+      var teamAgentIds = {};
+      AppState.agents.forEach(function (a) { if (a.ropId === t.id) teamAgentIds[a.id] = true; });
+      var teamEntries = entries.filter(function (e) { return teamAgentIds[e.agentId]; });
+      var totalPts = teamEntries.reduce(function (s, e) {
+        return s + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
+      }, 0);
+      var deals = teamEntries.reduce(function (s, e) { return s + (e.counts.deal || 0); }, 0);
+      var revenue = teamEntries.reduce(function (s, e) { return s + (e.dealSum || 0); }, 0);
+      var base = t.count * settings.weeklyMin * settings.weeksPerMonth;
+      var th05 = base * settings.tierMult.t05;
+      var th1 = base * settings.tierMult.t1;
+      var th2 = base * settings.tierMult.t2;
+      var tier = 0, tierLabel = "0%";
+      if (totalPts >= th2) { tier = 0.02; tierLabel = "2%"; }
+      else if (totalPts >= th1) { tier = 0.01; tierLabel = "1%"; }
+      else if (totalPts >= th05) { tier = 0.005; tierLabel = "0,5%"; }
+      var bonus = revenue * tier;
+      var progress = th2 > 0 ? Math.min(1, totalPts / th2) : 0;
+
+      var below = 0;
+      WEEKS.forEach(function (w) {
+        Object.keys(teamAgentIds).forEach(function (aid) {
+          var e = entries.find(function (x) { return x.agentId === aid && x.week === w; });
+          if (e) {
+            var p = entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
+            if (p < settings.weeklyMin) below++;
+          }
+        });
+      });
+
+      var catCounts = {};
+      ACTIONS.forEach(function (a) {
+        catCounts[a.key] = teamEntries.reduce(function (s, e) { return s + (e.counts[a.key] || 0); }, 0);
+      });
+
+      var agentCount = Object.keys(teamAgentIds).length;
+      return {
+        id: t.id, name: t.name, city: t.city, count: t.count, agentCount: agentCount,
+        totalPts: totalPts, deals: deals, th05: th05, th1: th1, th2: th2,
+        tier: tier, tierLabel: tierLabel, revenue: revenue, bonus: bonus,
+        progress: progress, below: below, catCounts: catCounts
+      };
+    });
+  }
+  function computeTeamRanking(teamStats) {
+    return teamStats.slice().sort(function (a, b) { return b.totalPts - a.totalPts; });
+  }
+
+  function computeAgentStats() {
+    var settings = AppState.monthSettings || defaultSettings();
+    var entries = AppState.monthEntries || [];
+    return AppState.agents.map(function (a) {
+      var aEntries = entries.filter(function (e) { return e.agentId === a.id; });
+      var totalPts = aEntries.reduce(function (s, e) {
+        return s + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
+      }, 0);
+      var deals = aEntries.reduce(function (s, e) { return s + (e.counts.deal || 0); }, 0);
+      var revenue = aEntries.reduce(function (s, e) { return s + (e.dealSum || 0); }, 0);
+      var team = teamById(a.ropId);
+      return { id: a.id, name: a.name, ropId: a.ropId, ropName: team ? team.name : "—", city: team ? team.city : "—", totalPts: totalPts, deals: deals, revenue: revenue };
+    }).sort(function (a, b) { return b.totalPts - a.totalPts; });
+  }
+
+  function computeBelowNormList() {
+    var settings = AppState.monthSettings || defaultSettings();
+    var entries = AppState.monthEntries || [];
+    var list = [];
+    entries.forEach(function (e) {
+      var pts = entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
+      if (pts < settings.weeklyMin) {
+        var a = agentById(e.agentId);
+        if (a) {
+          var team = teamById(a.ropId);
+          list.push({ id: e.week + "_" + e.agentId, week: e.week, pts: pts, agentName: a.name, ropName: team ? team.name : "—" });
+        }
+      }
+    });
+    return list.sort(function (a, b) { return a.week - b.week; });
+  }
+
+  // Грейд агента для произвольного набора {settings, entries} (текущий месяц или закешированный прошлый)
+  function gradeFromData(agent, data) {
+    if (!data) return null;
+    var settings = data.settings;
+    var entries = data.entries.filter(function (e) { return e.agentId === agent.id; });
+    var pts = entries.reduce(function (s, e) { return s + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts); }, 0);
+    var deals = entries.reduce(function (s, e) { return s + (e.counts.deal || 0); }, 0);
+    var revenue = entries.reduce(function (s, e) { return s + (e.dealSum || 0); }, 0);
+    var pointsPlan = settings.weeklyMin * settings.weeksPerMonth;
+    var revenuePlan = settings.revenuePlan || 0;
+    var ptsRatio = pointsPlan > 0 ? pts / pointsPlan : 0;
+    var revRatio = revenuePlan > 0 ? revenue / revenuePlan : 0;
+    var ratio = Math.max(ptsRatio, revRatio);
+    var pct = ratio * 100;
+    var c = settings.commission;
+    var tier;
+    if (pct < c.p1) tier = "A"; else if (pct <= c.p2) tier = "B"; else if (pct <= c.p3) tier = "C"; else tier = "D";
+    return { pts: pts, deals: deals, revenue: revenue, pointsPlan: pointsPlan, revenuePlan: revenuePlan, pct: pct, tier: tier };
+  }
+
+  function activeCommissionRate(agent, prevData) {
+    var settings = AppState.monthSettings || defaultSettings();
+    var c = settings.commission;
+    var prevGrade = gradeFromData(agent, prevData);
+    if (!prevGrade) return { rate: c.bRate, note: "нет данных за прошлый месяц — стандартная ставка" };
+    var curEntries = (AppState.monthEntries || []).filter(function (e) { return e.agentId === agent.id; });
+    var curDeals = curEntries.reduce(function (s, e) { return s + (e.counts.deal || 0); }, 0);
+    if (prevGrade.tier === "A") {
+      var n = c.aDealsCount || 3;
+      if (curDeals < n) return { rate: c.aRate, note: (n - curDeals) + " сдел. по " + c.aRate + "% из " + n + ", далее " + c.aStandard + "%" };
+      return { rate: c.aStandard, note: "лимит по сниженной ставке исчерпан (" + n + " сделки)" };
+    }
+    if (prevGrade.tier === "B") return { rate: c.bRate, note: "" };
+    if (prevGrade.tier === "C") return { rate: c.cRate, note: "" };
+    return { rate: c.dRate, note: "" };
+  }
+  function sealSvg(progress, tierLabel, pts, size) {
+    size = size || 128;
+    var r = size / 2 - 10;
+    var c = 2 * Math.PI * r;
+    var dash = c * Math.min(1, Math.max(0, progress));
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
+      '<defs><linearGradient id="gg' + size + '" x1="0%" y1="0%" x2="100%" y2="100%">' +
+      '<stop offset="0%" stop-color="#D4B483"/><stop offset="100%" stop-color="#A07C48"/></linearGradient></defs>' +
+      '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + r + '" fill="none" stroke="#EFEBE2" stroke-width="8"/>' +
+      '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + r + '" fill="none" stroke="url(#gg' + size + ')" stroke-width="8" stroke-linecap="round" ' +
+        'stroke-dasharray="' + dash + ' ' + c + '" transform="rotate(-90 ' + (size / 2) + ' ' + (size / 2) + ')"/>' +
+      '<text x="50%" y="46%" text-anchor="middle" class="seal-num">' + esc(fmtPts(pts)) + '</text>' +
+      '<text x="50%" y="64%" text-anchor="middle" class="seal-sub">баллов</text>' +
+      '<text x="50%" y="80%" text-anchor="middle" class="seal-tier">' + esc(tierLabel) + '</text>' +
+      '</svg>';
+  }
+
+  /* ============================================================
+     РЕНДЕР: ШАПКА / МЕСЯЦЫ / ВКЛАДКИ
+  ============================================================ */
+
+  var UI = { tab: "dash", addMonthOpen: false, filterWeek: "all" };
+
+  function renderDashboard() {
+    var settings = AppState.monthSettings || defaultSettings();
+    var teamStats = computeTeamStats();
+    var teamRanking = computeTeamRanking(teamStats);
+    var agentStats = computeAgentStats();
+    var belowNormList = computeBelowNormList();
+    var totalCompanyPts = teamStats.reduce(function (s, t) { return s + t.totalPts; }, 0);
+    var totalCompanyBonus = teamStats.reduce(function (s, t) { return s + t.bonus; }, 0);
+
+    var html = '<p class="muted on-dark" style="margin-top:-8px;">Показатели за: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b></p>';
+
+    html += '<div class="dash-top">' +
+      '<div class="kpi"><span class="kpi-label">Баллов по компании</span><span class="kpi-value">' + esc(fmtPts(totalCompanyPts)) + '</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Суммарный бонус РОПов</span><span class="kpi-value gold">' + esc(fmtRub(totalCompanyBonus)) + '</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Норма в неделю / агент</span><span class="kpi-value">' + esc(settings.weeklyMin) + ' балла</span></div>' +
+      '</div>';
+
+    html += '<h2 class="section-title">Рейтинг команд (РОПов)</h2>';
+    html += '<div class="table-scroll"><table class="tbl"><thead><tr>' +
+      '<th>#</th><th>РОП</th><th>Город</th><th>Баллы</th>' +
+      ACTIONS.map(function (a) { return '<th>' + esc(a.short) + '</th>'; }).join("") +
+      '<th>Сделок</th><th>Валовая выручка</th></tr></thead><tbody>';
+    teamRanking.forEach(function (t, i) {
+      html += '<tr><td class="rank">' + (i + 1) + '</td><td class="rowname">' + esc(t.name) + '</td><td>' + esc(t.city) + '</td>' +
+        '<td class="good">' + esc(fmtPts(t.totalPts)) + '</td>' +
+        ACTIONS.map(function (a) { return '<td>' + t.catCounts[a.key] + '</td>'; }).join("") +
+        '<td>' + t.deals + '</td><td class="gold">' + esc(fmtRub(t.revenue)) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+
+    html += '<h2 class="section-title">Команды РОПов</h2>';
+    CITIES.forEach(function (city) {
+      var cityTeams = teamStats.filter(function (t) { return t.city === city; });
+      if (!cityTeams.length) return;
+      html += '<p class="muted on-dark" style="margin:10px 0 8px 0;font-weight:600;color:#fff;">' + esc(city) + '</p>';
+      html += '<div class="seal-grid">';
+      cityTeams.forEach(function (t) {
+        html += '<div class="seal-card">' + sealSvg(t.progress, t.tierLabel, t.totalPts) +
+          '<div class="seal-meta"><h3>' + esc(t.name) + '</h3><p class="muted">' + t.agentCount + ' агентов</p>' +
+          '<div class="thresh-row">' +
+            '<span class="' + (t.totalPts >= t.th05 ? "hit" : "") + '">0,5% ≥ ' + esc(fmtPts(t.th05)) + '</span>' +
+            '<span class="' + (t.totalPts >= t.th1 ? "hit" : "") + '">1% ≥ ' + esc(fmtPts(t.th1)) + '</span>' +
+            '<span class="' + (t.totalPts >= t.th2 ? "hit" : "") + '">2% ≥ ' + esc(fmtPts(t.th2)) + '</span>' +
+          '</div>' +
+          '<div class="bonus-row"><span>Сделок: <b>' + t.deals + '</b></span><span>Выручка: <b>' + esc(fmtRub(t.revenue)) + '</b></span></div>' +
+          '<div class="bonus-final">Бонус РОПа: <b>' + esc(fmtRub(t.bonus)) + '</b></div>' +
+          (t.below > 0 ? '<div class="warn-pill">' + t.below + ' агенто-недель без нормы</div>' : '') +
+          '</div></div>';
+      });
+      html += '</div>';
+    });
+
+    html += '<h2 class="section-title">Общий рейтинг агентов</h2>';
+    html += '<div class="table-scroll"><table class="tbl"><thead><tr>' +
+      '<th>#</th><th>Агент</th><th>РОП</th><th>Город</th><th>Баллы</th><th>Сделок</th><th>Валовая выручка</th></tr></thead><tbody>';
+    agentStats.forEach(function (a, i) {
+      html += '<tr><td class="rank">' + (i + 1) + '</td><td class="rowname">' + esc(a.name) + '</td><td>' + esc(a.ropName) + '</td><td>' + esc(a.city) + '</td>' +
+        '<td class="' + (a.totalPts > 0 ? "good" : "") + '">' + esc(fmtPts(a.totalPts)) + '</td>' +
+        '<td>' + a.deals + '</td><td class="gold">' + esc(fmtRub(a.revenue)) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+
+    html += '<h2 class="section-title">Агенты ниже недельной нормы</h2>';
+    if (belowNormList.length === 0) {
+      html += '<p class="muted on-dark empty">Пока все залогированные недели в норме — так держать.</p>';
+    } else {
+      html += '<div class="table-scroll"><table class="tbl"><thead><tr><th>Неделя</th><th>Агент</th><th>РОП</th><th>Баллы</th></tr></thead><tbody>';
+      belowNormList.forEach(function (e) {
+        html += '<tr><td>' + e.week + '</td><td>' + esc(e.agentName) + '</td><td>' + esc(e.ropName) + '</td>' +
+          '<td class="bad">' + esc(fmtPts(e.pts)) + ' / ' + esc(settings.weeklyMin) + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    return html;
+  }
+
+  /* ============================================================
+     РЕНДЕР: ВВОД БАЛЛОВ
+  ============================================================ */
+  var draft = { week: 1, ropId: null, agentId: null, counts: {}, dealSum: 0 };
+  function ensureDraftDefaults() {
+    if (!draft.ropId && AppState.teams.length) draft.ropId = AppState.teams[0].id;
+    var teamAgents = AppState.agents.filter(function (a) { return a.ropId === draft.ropId; });
+    if (!teamAgents.some(function (a) { return a.id === draft.agentId; })) {
+      draft.agentId = teamAgents[0] ? teamAgents[0].id : null;
+    }
+    ACTIONS.forEach(function (a) { if (draft.counts[a.key] == null) draft.counts[a.key] = 0; });
+  }
+
+  function renderEntry() {
+    ensureDraftDefaults();
+    var settings = AppState.monthSettings || defaultSettings();
+    var teamAgents = AppState.agents.filter(function (a) { return a.ropId === draft.ropId; });
+    var pts = entryPoints(draft.counts, settings.points, draft.week, settings.weekBoosts);
+    var boostedKeys = settings.weekBoosts[draft.week] || [];
+
+    var html = '<p class="muted on-dark" style="margin-top:-8px;">Записи за: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b> — сохраняются сразу для всех.</p>';
+    html += '<div class="entry">';
+
+    html += '<div class="card"><h2 class="section-title">Добавить запись</h2>';
+    html += '<div class="form-row">' +
+      '<label>Неделя<select id="f-week">' + WEEKS.map(function (w) {
+        return '<option value="' + w + '"' + (w === draft.week ? " selected" : "") + '>Неделя ' + w + '</option>';
+      }).join("") + '</select></label>' +
+      '<label>РОП<select id="f-rop">' + CITIES.map(function (city) {
+        var opts = AppState.teams.filter(function (t) { return t.city === city; }).map(function (t) {
+          return '<option value="' + t.id + '"' + (t.id === draft.ropId ? " selected" : "") + '>' + esc(t.name) + '</option>';
+        }).join("");
+        return opts ? '<optgroup label="' + esc(city) + '">' + opts + '</optgroup>' : "";
+      }).join("") + '</select></label>' +
+      '<label>Агент<select id="f-agent">' + teamAgents.map(function (a) {
+        return '<option value="' + a.id + '"' + (a.id === draft.agentId ? " selected" : "") + '>' + esc(a.name) + '</option>';
+      }).join("") + '</select></label>' +
+      '</div>';
+
+    html += '<div class="counters">';
+    ACTIONS.forEach(function (a) {
+      var boosted = boostedKeys.indexOf(a.key) >= 0;
+      html += '<div class="counter' + (boosted ? " boosted" : "") + '">' +
+        '<div class="counter-label">' + esc(a.short) + '<i>' + esc(settings.points[a.key]) + ' б.' + (boosted ? " ×2" : "") + '</i></div>' +
+        '<div class="counter-controls"><button data-bump="' + a.key + '" data-delta="-1">−</button>' +
+        '<span>' + (draft.counts[a.key] || 0) + '</span><button data-bump="' + a.key + '" data-delta="1">+</button></div></div>';
+    });
+    html += '</div>';
+    html += '<p class="muted small" style="margin-top:-4px;margin-bottom:14px;">Персиковым выделены действия с двойными баллами на неделе ' + draft.week + ' (настраивается на вкладке «Настройки»).</p>';
+
+    html += '<div class="form-row"><label>Сумма сделок за неделю, ₽ (вносится вручную по факту)' +
+      '<input type="number" step="1000" id="f-dealsum" value="' + esc(draft.dealSum || 0) + '"/></label></div>';
+
+    html += '<div class="entry-footer"><span>Итого за запись: <b>' + esc(fmtPts(pts)) + ' балла</b> ' +
+      (pts < settings.weeklyMin ? '<i class="bad">ниже нормы</i>' : '<i class="good">норма выполнена</i>') + '</span>' +
+      '<button class="btn-primary" id="save-entry"' + (draft.agentId ? "" : " disabled") + '>Сохранить запись</button></div>';
+    html += '</div>';
+
+    var visibleEntries = (AppState.monthEntries || []).filter(function (e) {
+      return UI.filterWeek === "all" || e.week === Number(UI.filterWeek);
+    }).slice().sort(function (a, b) {
+      if (a.week !== b.week) return a.week - b.week;
+      var an = (agentById(a.agentId) || {}).name || "";
+      var bn = (agentById(b.agentId) || {}).name || "";
+      return an.localeCompare(bn);
+    });
+
+    html += '<div class="card"><div class="log-head"><h2 class="section-title" style="margin:0;">Журнал недели</h2>' +
+      '<select id="filter-week"><option value="all"' + (UI.filterWeek === "all" ? " selected" : "") + '>Все недели</option>' +
+      WEEKS.map(function (w) { return '<option value="' + w + '"' + (String(w) === String(UI.filterWeek) ? " selected" : "") + '>Неделя ' + w + '</option>'; }).join("") +
+      '</select></div>';
+
+    if (visibleEntries.length === 0) {
+      html += '<p class="muted empty">Записей пока нет — заполните форму слева.</p>';
+    } else {
+      html += '<table class="tbl"><thead><tr><th>Нед.</th><th>Агент</th><th>Баллы</th><th>Сумма сделок</th><th></th></tr></thead><tbody>';
+      visibleEntries.forEach(function (e) {
+        var p = entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
+        var a = agentById(e.agentId);
+        html += '<tr><td>' + e.week + '</td><td>' + esc(a ? a.name : "—") + '</td>' +
+          '<td class="' + (p < settings.weeklyMin ? "bad" : "good") + '">' + esc(fmtPts(p)) + '</td>' +
+          '<td class="gold">' + esc(fmtRub(e.dealSum || 0)) + '</td>' +
+          '<td><button class="btn-ghost" data-del-entry-agent="' + e.agentId + '" data-del-entry-week="' + e.week + '">Удалить</button></td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  /* ============================================================
+     РЕНДЕР: КОМИССИИ АГЕНТОВ
+  ============================================================ */
+  var commissionsLoadedKey = null;
+  var commissionsPrevData = undefined; // undefined = ещё грузим, null = месяца нет, объект = данные
+
+  function renderCommissions() {
+    var settings = AppState.monthSettings || defaultSettings();
+    var pointsPlan = settings.weeklyMin * settings.weeksPerMonth;
+    var prevKey = monthKeyAddMonths(AppState.currentMonth, -1);
+
+    if (commissionsLoadedKey !== prevKey) {
+      commissionsLoadedKey = prevKey;
+      commissionsPrevData = undefined;
+      loadPrevMonthData(prevKey).then(function (data) {
+        commissionsPrevData = data;
+        if (UI.tab === "commissions") render();
+      });
+    }
+
+    var html = '<p class="muted on-dark" style="margin-top:-8px;">Комиссии за: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b></p>';
+
+    html += '<div class="dash-top">' +
+      '<div class="kpi"><span class="kpi-label">План на месяц</span><span class="kpi-value">' + esc(pointsPlan) + ' б.</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Норма в неделю</span><span class="kpi-value">' + esc(settings.weeklyMin) + ' б.</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Либо вал от</span><span class="kpi-value gold">' + esc(fmtRub(settings.revenuePlan)) + '</span></div>' +
+      '</div>';
+
+    html += '<h2 class="section-title">Градация выполнения плана</h2>';
+    html += '<div class="table-scroll"><table class="tbl"><thead><tr><th>Уровень</th><th>% от плана</th><th>Комиссия со сделки</th></tr></thead><tbody>' +
+      '<tr><td class="rowname">A</td><td>Менее ' + esc(settings.commission.p1) + '%</td><td class="gold">' + esc(settings.commission.aRate) + '% на первые ' + esc(settings.commission.aDealsCount) + ' сделки след. месяца, далее ' + esc(settings.commission.aStandard) + '%</td></tr>' +
+      '<tr><td class="rowname">B</td><td>' + (settings.commission.p1 + 1) + '–' + esc(settings.commission.p2) + '%</td><td class="gold">' + esc(settings.commission.bRate) + '%</td></tr>' +
+      '<tr><td class="rowname">C</td><td>' + (settings.commission.p2 + 1) + '–' + esc(settings.commission.p3) + '%</td><td class="gold">' + esc(settings.commission.cRate) + '%</td></tr>' +
+      '<tr><td class="rowname">D</td><td>' + (settings.commission.p3 + 1) + '%+ (план выполнен)</td><td class="gold">' + esc(settings.commission.dRate) + '%</td></tr>' +
+      '</tbody></table></div>';
+
+    if (commissionsPrevData === null) {
+      html += '<p class="muted on-dark small">Нет данных за предыдущий месяц (' + esc(monthLabel(prevKey)) + ') — всем агентам применяется стандартная ставка ' + esc(settings.commission.bRate) + '%, пока не появится история хотя бы за один месяц.</p>';
+    }
+
+    html += '<h2 class="section-title">Агенты — план и действующая ставка</h2>';
+    if (commissionsPrevData === undefined) {
+      html += '<p class="muted on-dark">Загрузка данных за прошлый месяц…</p>';
+    } else {
+      html += '<div class="table-scroll"><table class="tbl"><thead><tr>' +
+        '<th>Агент</th><th>РОП</th><th>Город</th><th>Баллы (мес.)</th><th>% от плана</th><th>Уровень</th><th>Ставка сейчас</th><th>Комментарий</th>' +
+        '</tr></thead><tbody>';
+      AppState.agents.slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).forEach(function (agent) {
+        var curData = { settings: settings, entries: AppState.monthEntries || [] };
+        var grade = gradeFromData(agent, curData);
+        var rate = activeCommissionRate(agent, commissionsPrevData);
+        var team = teamById(agent.ropId);
+        if (!grade) return;
+        html += '<tr><td class="rowname">' + esc(agent.name) + '</td><td>' + esc(team ? team.name : "—") + '</td><td>' + esc(team ? team.city : "—") + '</td>' +
+          '<td class="good">' + esc(fmtPts(grade.pts)) + ' / ' + esc(pointsPlan) + '</td>' +
+          '<td>' + esc(Math.round(grade.pct)) + '%</td><td class="rank">' + esc(grade.tier) + '</td>' +
+          '<td class="gold">' + esc(rate.rate) + '%</td>' +
+          '<td style="white-space:normal;font-family:Inter,Arial,sans-serif;font-size:12px;color:var(--slate);">' + esc(rate.note || "—") + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '<p class="muted on-dark small">Уровень считается по текущему месяцу (баллы либо вал — что выгоднее). Столбец «Ставка сейчас» — по грейду ПРЕДЫДУЩЕГО месяца (кроме уровня A, где отдельно считаются первые сделки нового месяца).</p>';
+    return html;
+  }
+
+  /* ============================================================
+     РЕНДЕР: КОМАНДА
+  ============================================================ */
+  var UI2 = { newRopName: "", newRopCity: CITIES[0], newAgentNameByRop: {} };
+
+  function renderTeam() {
+    var html = '<p class="muted on-dark" style="margin-top:-8px;">Список РОПов и агентов общий для всех месяцев и виден всем на сайте.</p>';
+    html += '<div class="card add-rop"><h2 class="section-title" style="margin:0;">Добавить РОПа</h2>' +
+      '<div class="inline-add">' +
+      '<input type="text" id="new-rop-name" placeholder="Имя РОПа" value="' + esc(UI2.newRopName) + '"/>' +
+      '<select id="new-rop-city" style="max-width:200px;">' + CITIES.map(function (c) {
+        return '<option value="' + esc(c) + '"' + (c === UI2.newRopCity ? " selected" : "") + '>' + esc(c) + '</option>';
+      }).join("") + '</select>' +
+      '<button class="btn-primary" id="add-rop-btn">Добавить</button></div></div>';
+
+    CITIES.forEach(function (city) {
+      var cityTeams = AppState.teams.filter(function (t) { return t.city === city; });
+      if (!cityTeams.length) return;
+      html += '<p class="muted on-dark" style="margin:18px 0 8px 0;font-weight:600;color:#fff;">' + esc(city) + '</p><div class="team-grid">';
+      cityTeams.forEach(function (t) {
+        var teamAgents = AppState.agents.filter(function (a) { return a.ropId === t.id; });
+        html += '<div class="card"><div class="team-card-head"><h3>' + esc(t.name) + '</h3>' +
+          '<button class="btn-ghost" data-del-rop="' + t.id + '">Удалить РОПа</button></div>' +
+          '<p class="muted">' + teamAgents.length + ' агентов</p><ul class="agent-list">';
+        teamAgents.forEach(function (a) {
+          html += '<li><span>' + esc(a.name) + '</span><button class="btn-ghost small" data-del-agent="' + a.id + '">×</button></li>';
+        });
+        html += '</ul><div class="inline-add small">' +
+          '<input type="text" data-new-agent-input="' + t.id + '" placeholder="Новый агент" value="' + esc(UI2.newAgentNameByRop[t.id] || "") + '"/>' +
+          '<button class="btn-ghost" data-add-agent="' + t.id + '">+ агент</button></div></div>';
+      });
+      html += '</div>';
+    });
+    return html;
+  }
+
+  /* ============================================================
+     РЕНДЕР: НАСТРОЙКИ
+  ============================================================ */
+  function renderSettings() {
+    var s = AppState.monthSettings || defaultSettings();
+    var monthlyBase = s.weeklyMin * s.weeksPerMonth;
+    var html = '<p class="muted on-dark" style="margin-top:-8px;">Настройки за: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b> — свои для каждого месяца, видны всем.</p>';
+    html += '<div class="settings">';
+
+    html += '<div class="card"><h2 class="section-title">Баллы за действия</h2><div class="settings-grid">';
+    ACTIONS.forEach(function (a) {
+      html += '<label class="settings-field">' + esc(a.label) + '<input type="number" step="0.5" data-point-key="' + a.key + '" value="' + esc(s.points[a.key]) + '"/></label>';
+    });
+    html += '</div></div>';
+
+    html += '<div class="card"><h2 class="section-title">Норма</h2><div class="settings-grid">' +
+      '<label class="settings-field">Мин. баллов в неделю на агента<input type="number" step="0.5" id="weekly-min" value="' + esc(s.weeklyMin) + '"/></label>' +
+      '<label class="settings-field">Недель в месяце<input type="number" id="weeks-per-month" value="' + esc(s.weeksPerMonth) + '"/></label>' +
+      '<div class="settings-field readonly">Норма в месяц на агента<span>' + esc(monthlyBase) + ' б.</span></div>' +
+      '</div></div>';
+
+    html += '<div class="card"><h2 class="section-title">Пороги бонуса РОПа (× от месячной нормы на агента)</h2><div class="settings-grid">' +
+      '<label class="settings-field">0,5% при ×<input type="number" step="0.1" data-tier="t05" value="' + esc(s.tierMult.t05) + '"/></label>' +
+      '<label class="settings-field">1% при ×<input type="number" step="0.1" data-tier="t1" value="' + esc(s.tierMult.t1) + '"/></label>' +
+      '<label class="settings-field">2% при ×<input type="number" step="0.1" data-tier="t2" value="' + esc(s.tierMult.t2) + '"/></label>' +
+      '</div><p class="muted small">Порог в баллах = кол-во агентов в команде × ' + esc(monthlyBase) + ' × коэффициент.</p></div>';
+
+    html += '<div class="card"><h2 class="section-title">Недельные множители ×2</h2>' +
+      '<p class="muted small" style="margin-top:-6px;">Отметьте, какие действия дают двойные баллы на каждой неделе месяца.</p>' +
+      '<div class="boost-table"><div class="boost-row boost-head"><span></span>' +
+      ACTIONS.map(function (a) { return '<span>' + esc(a.short) + '</span>'; }).join("") + '</div>';
+    WEEKS.forEach(function (w) {
+      html += '<div class="boost-row"><span class="boost-week">Неделя ' + w + '</span>';
+      ACTIONS.forEach(function (a) {
+        var on = (s.weekBoosts[w] || []).indexOf(a.key) >= 0;
+        html += '<button class="boost-cell' + (on ? " on" : "") + '" data-boost-week="' + w + '" data-boost-key="' + a.key + '" title="' + esc(a.label) + '">' + (on ? "×2" : "—") + '</button>';
+      });
+      html += '</div>';
+    });
+    html += '</div></div>';
+
+    html += '<div class="card"><h2 class="section-title">Выручка и план агента</h2><div class="settings-grid">' +
+      '<div class="settings-field readonly">Валовая выручка<span style="font-size:13px;">вносится вручную в форме ввода баллов</span></div>' +
+      '<label class="settings-field">План агента по валу, ₽/мес (альтернатива баллам)<input type="number" step="10000" id="revenue-plan" value="' + esc(s.revenuePlan) + '"/></label>' +
+      '</div><p class="muted small">Бонус РОПа считается от суммы сумм сделок, введённых по факту в «Баллы за неделю». План выполнения для агента (100%) — баллы (норма × недель) ЛИБО вал по этому полю — берётся то, что выгоднее агенту.</p></div>';
+
+    html += '<div class="card"><h2 class="section-title">Комиссия агентов (вкладка «Комиссии»)</h2>' +
+      '<div class="settings-grid">' +
+      '<label class="settings-field">Граница A/B, % от плана<input type="number" data-comm="p1" value="' + esc(s.commission.p1) + '"/></label>' +
+      '<label class="settings-field">Граница B/C, % от плана<input type="number" data-comm="p2" value="' + esc(s.commission.p2) + '"/></label>' +
+      '<label class="settings-field">Граница C/D, % от плана<input type="number" data-comm="p3" value="' + esc(s.commission.p3) + '"/></label>' +
+      '</div>' +
+      '<div class="settings-grid" style="margin-top:12px;">' +
+      '<label class="settings-field">Уровень A: ставка первых N сделок, %<input type="number" data-comm="aRate" value="' + esc(s.commission.aRate) + '"/></label>' +
+      '<label class="settings-field">Уровень A: сделок по сниж. ставке<input type="number" data-comm="aDealsCount" value="' + esc(s.commission.aDealsCount) + '"/></label>' +
+      '<label class="settings-field">Уровень A: далее ставка, %<input type="number" data-comm="aStandard" value="' + esc(s.commission.aStandard) + '"/></label>' +
+      '<label class="settings-field">Уровень B (стандарт), %<input type="number" data-comm="bRate" value="' + esc(s.commission.bRate) + '"/></label>' +
+      '<label class="settings-field">Уровень C, %<input type="number" data-comm="cRate" value="' + esc(s.commission.cRate) + '"/></label>' +
+      '<label class="settings-field">Уровень D (план выполнен), %<input type="number" data-comm="dRate" value="' + esc(s.commission.dRate) + '"/></label>' +
+      '</div>' +
+      '<p class="muted small">Ставка действует в следующем после расчёта месяце: грейд считается по итогам месяца, ставка применяется к сделкам следующего месяца (для уровня A — только к первым N сделкам, далее — стандартная ставка).</p></div>';
+
+    html += '</div>';
+    return html;
+  }
+
+  /* ============================================================
+     РЕНДЕР: ЭКСПОРТ (только администраторы)
+  ============================================================ */
+
+  /* ============================================================
+     РЕНДЕР: ШАПКА / МЕСЯЦЫ / ВКЛАДКИ
+  ============================================================ */
+  function renderHeader() {
+    var sortedMonths = AppState.monthOrder;
+    var nextKey = sortedMonths.length ? monthKeyAddMonths(sortedMonths[sortedMonths.length - 1], 1) : monthKey(2026, 7);
+    var nextParts = nextKey.split("-");
+    var monthOptions = sortedMonths.map(function (k) {
+      return '<option value="' + k + '"' + (k === AppState.currentMonth ? " selected" : "") + '>' + esc(monthLabel(k)) + '</option>';
+    }).join("");
+    var yearNow = Number(nextParts[0]);
+    var yearOptions = "";
+    for (var y = yearNow - 2; y <= yearNow + 3; y++) yearOptions += '<option value="' + y + '"' + (y === yearNow ? " selected" : "") + '>' + y + '</option>';
+    var monthNameOptions = RUS_MONTHS.map(function (name, idx) {
+      return '<option value="' + idx + '"' + (idx === Number(nextParts[1]) - 1 ? " selected" : "") + '>' + name + '</option>';
+    }).join("");
+
+    var whoHtml = AppState.isAdmin ? '<div class="who-box"><span class="admin-badge">админ</span></div>' : "";
+
+    return '' +
+      '<div class="site-header">' +
+        '<div class="brand">' +
+          '<img src="data:image/png;base64,' + LOGO_B64 + '" alt="Т—Недвижимость"/>' +
+          '<div><h1>Т—Недвижимость</h1><p>Баллы, бонусы РОПов и комиссии агентов</p></div>' +
+        '</div>' +
+        '<div class="header-right">' +
+          whoHtml +
+          '<div class="month-wrap">' +
+            '<div style="display:flex;align-items:flex-end;gap:10px;">' +
+              '<div class="month-box"><span>Месяц</span><select id="month-select">' + monthOptions + '</select></div>' +
+              '<button class="add-month-btn" id="add-month-toggle" type="button">+ Месяц</button>' +
+            '</div>' +
+            '<div class="add-month-form' + (UI.addMonthOpen ? " open" : "") + '" id="add-month-form">' +
+              '<label>Месяц<select id="new-month-name">' + monthNameOptions + '</select></label>' +
+              '<label>Год<select id="new-month-year">' + yearOptions + '</select></label>' +
+              '<button class="btn-primary" id="create-month-btn" type="button">Создать</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function renderTabs() {
+    var tabs = [["dash", "Дашборд"], ["entry", "Баллы за неделю"], ["commissions", "Комиссии"], ["team", "Команда"], ["settings", "Настройки"], ["admin", "Экспорт"]];
+    return '<div class="tabs">' +
+      '<div class="tabs-left">' + tabs.map(function (t) {
+        var active = UI.tab === t[0] ? " active" : "";
+        return '<button class="tab' + active + '" data-tab="' + t[0] + '">' + t[1] + '</button>';
+      }).join("") + '</div>' +
+      '<div class="sync-note"><span class="sync-dot' + (AppState.syncStatus === "saving" ? " saving" : AppState.syncStatus === "off" ? " off" : "") + '" id="sync-dot"></span>Общие данные — видны всем на сайте</div>' +
+      '</div>';
+  }
+
+  /* ============================================================
+     РЕНДЕР: ЭКСПОРТ (пин-код администратора)
+  ============================================================ */
+  var adminPinMsg = "";
+  function renderAdmin() {
+    if (!AppState.isAdmin) {
+      var html = '<div class="card"><h2 class="section-title" style="margin-top:0;">Доступ администратора</h2>' +
+        '<p class="muted">Экспорт в Excel и управление пин-кодом доступны только по пин-коду администратора.</p>' +
+        '<div class="form-row"><label>Пин-код<input type="password" id="admin-pin-input" placeholder="••••"/></label></div>' +
+        '<button class="btn-primary" id="admin-pin-submit">Войти</button>' +
+        (adminPinMsg ? '<p class="muted small" style="color:#B8492F;">' + esc(adminPinMsg) + '</p>' : '') +
+        '<p class="muted small">Если пин ещё не задавали — просто впишите любой новый пин и нажмите «Войти»: он станет постоянным паролем администратора.</p>' +
+        '</div>';
+      return html;
+    }
+    var html2 = '<div class="card admin-card"><h2 class="section-title" style="margin-top:0;">Экспорт всех данных в Excel<span class="admin-badge">админ</span></h2>';
+    html2 += '<p class="muted">Выгружает книгу со всеми месяцами: баллы, суммы сделок, команды, агентов и итоги — всё, что сейчас хранится в общей базе.</p>';
+    html2 += '<button class="btn-primary" id="export-excel-btn">Скачать Excel (.xlsx)</button>';
+    html2 += '<p class="muted small" id="export-status"></p></div>';
+
+    html2 += '<div class="card" style="margin-top:16px;"><h2 class="section-title" style="margin-top:0;">Сменить пин-код</h2>' +
+      '<div class="form-row">' +
+      '<label>Текущий пин<input type="password" id="pin-old"/></label>' +
+      '<label>Новый пин<input type="password" id="pin-new"/></label>' +
+      '</div><button class="btn-ghost" id="pin-change-btn">Сохранить новый пин</button>' +
+      '<p class="muted small" id="pin-change-status"></p>' +
+      '<button class="btn-ghost" id="admin-logout-btn" style="margin-top:10px;">Выйти из режима администратора</button>' +
+      '</div>';
+    return html2;
+  }
+
+  /* ============================================================
+     ЭКСПОРТ В EXCEL — читает ВСЕ месяцы, обычное скачивание в браузере
+  ============================================================ */
+  async function exportAllToExcel() {
+    var statusEl = document.getElementById("export-status");
+    if (statusEl) statusEl.textContent = "Собираю данные со всех месяцев…";
+    try {
+      var wb = XLSX.utils.book_new();
+
+      var agentsRows = AppState.agents.map(function (a) {
+        var t = teamById(a.ropId);
+        return { ID: a.id, Агент: a.name, РОП: t ? t.name : "", Город: t ? t.city : "" };
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(agentsRows), "Агенты");
+
+      var teamsRows = AppState.teams.map(function (t) {
+        return { ID: t.id, РОП: t.name, Город: t.city, "Кол-во агентов": t.count };
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(teamsRows), "Команды");
+
+      var summaryRows = [];
+      for (var mi = 0; mi < AppState.monthOrder.length; mi++) {
+        var key = AppState.monthOrder[mi];
+        var data = key === AppState.currentMonth
+          ? { settings: AppState.monthSettings || defaultSettings(), entries: AppState.monthEntries || [] }
+          : await loadPrevMonthData(key);
+        if (!data) continue;
+        if (statusEl) statusEl.textContent = "Обрабатываю " + monthLabel(key) + "…";
+
+        var entryRows = data.entries.map(function (e) {
+          var a = agentById(e.agentId);
+          var team = a ? teamById(a.ropId) : null;
+          var pts = entryPoints(e.counts, data.settings.points, e.week, data.settings.weekBoosts);
+          var row = { Неделя: e.week, Агент: a ? a.name : e.agentId, РОП: team ? team.name : "", Город: team ? team.city : "" };
+          ACTIONS.forEach(function (act) { row[act.label] = e.counts[act.key] || 0; });
+          row["Баллы"] = Math.round(pts * 10) / 10;
+          row["Сумма сделок, ₽"] = e.dealSum || 0;
+          return row;
+        });
+        var sheetName = monthLabel(key).slice(0, 31);
+        var ws = entryRows.length ? XLSX.utils.json_to_sheet(entryRows) : XLSX.utils.aoa_to_sheet([["Записей нет"]]);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+        AppState.teams.forEach(function (t) {
+          var teamAgentIds = {};
+          AppState.agents.forEach(function (a) { if (a.ropId === t.id) teamAgentIds[a.id] = true; });
+          var teamEntries = data.entries.filter(function (e) { return teamAgentIds[e.agentId]; });
+          var totalPts = teamEntries.reduce(function (s, e) { return s + entryPoints(e.counts, data.settings.points, e.week, data.settings.weekBoosts); }, 0);
+          var deals = teamEntries.reduce(function (s, e) { return s + (e.counts.deal || 0); }, 0);
+          var revenue = teamEntries.reduce(function (s, e) { return s + (e.dealSum || 0); }, 0);
+          var base = t.count * data.settings.weeklyMin * data.settings.weeksPerMonth;
+          var tierPct = 0;
+          if (totalPts >= base * data.settings.tierMult.t2) tierPct = 2;
+          else if (totalPts >= base * data.settings.tierMult.t1) tierPct = 1;
+          else if (totalPts >= base * data.settings.tierMult.t05) tierPct = 0.5;
+          summaryRows.push({
+            Месяц: monthLabel(key), РОП: t.name, Город: t.city,
+            Баллы: Math.round(totalPts * 10) / 10, Сделок: deals,
+            "Выручка, ₽": revenue, "Бонус РОПа, %": tierPct, "Бонус РОПа, ₽": Math.round(revenue * tierPct / 100)
+          });
+        });
+      }
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), "Итоги по месяцам");
+
+      var filename = "Т-Недвижимость_баллы_" + (new Date().toISOString().slice(0, 10)) + ".xlsx";
+      XLSX.writeFile(wb, filename);
+      if (statusEl) statusEl.textContent = "Файл сохранён: " + filename;
+    } catch (e) {
+      console.warn("export failed", e);
+      if (statusEl) statusEl.textContent = "Не удалось выгрузить: " + (e && e.message ? e.message : "ошибка");
+    }
+  }
+
+  /* ============================================================
+     ГЛАВНЫЙ РЕНДЕР
+  ============================================================ */
+  var root = document.getElementById("root");
+
+  function render() {
+    if (AppState.configOk === false) {
+      root.innerHTML = '<div class="loading-screen"><div style="font-size:32px;">⚙️</div>' +
+        '<div style="max-width:480px;text-align:center;">Сайт ещё не настроен: впишите Project URL и anon key вашего проекта Supabase в начало файла index.html (переменные SUPABASE_URL и SUPABASE_ANON_KEY) и выполните supabase_schema.sql в Supabase SQL Editor.</div></div>';
+      return;
+    }
+    if (!AppState.ready) {
+      root.innerHTML = '<div class="loading-screen"><div class="spinner"></div><div>Загрузка данных…</div></div>';
+      return;
+    }
+    var body = "";
+    if (UI.tab === "dash") body = renderDashboard();
+    else if (UI.tab === "entry") body = renderEntry();
+    else if (UI.tab === "commissions") body = renderCommissions();
+    else if (UI.tab === "team") body = renderTeam();
+    else if (UI.tab === "settings") body = renderSettings();
+    else if (UI.tab === "admin") body = renderAdmin();
+
+    root.innerHTML = '<div class="wrap">' + renderHeader() + renderTabs() + '<div class="main">' + body + '</div></div>';
+    bindEvents();
+  }
+
+  /* ============================================================
+     СОБЫТИЯ
+  ============================================================ */
+  function bindEvents() {
+    root.querySelectorAll("[data-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () { UI.tab = btn.getAttribute("data-tab"); adminPinMsg = ""; render(); });
+    });
+
+    var monthSelect = root.querySelector("#month-select");
+    if (monthSelect) monthSelect.addEventListener("change", function () { switchMonth(monthSelect.value); });
+
+    var addMonthToggle = root.querySelector("#add-month-toggle");
+    if (addMonthToggle) addMonthToggle.addEventListener("click", function () { UI.addMonthOpen = !UI.addMonthOpen; render(); });
+
+    var createMonthBtn = root.querySelector("#create-month-btn");
+    if (createMonthBtn) createMonthBtn.addEventListener("click", async function () {
+      var monthSel = root.querySelector("#new-month-name");
+      var yearSel = root.querySelector("#new-month-year");
+      var key = monthKey(Number(yearSel.value), Number(monthSel.value));
+      UI.addMonthOpen = false;
+      await createMonth(key);
+    });
+
+    if (UI.tab === "entry") bindEntryEvents();
+    if (UI.tab === "team") bindTeamEvents();
+    if (UI.tab === "settings") bindSettingsEvents();
+    if (UI.tab === "admin") bindAdminEvents();
+  }
+
+  function bindEntryEvents() {
+    var wk = root.querySelector("#f-week");
+    if (wk) wk.addEventListener("change", function () { draft.week = Number(wk.value); render(); });
+
+    var ropSel = root.querySelector("#f-rop");
+    if (ropSel) ropSel.addEventListener("change", function () {
+      draft.ropId = ropSel.value;
+      var teamAgents = AppState.agents.filter(function (a) { return a.ropId === draft.ropId; });
+      draft.agentId = teamAgents[0] ? teamAgents[0].id : null;
+      render();
+    });
+
+    var agentSel = root.querySelector("#f-agent");
+    if (agentSel) agentSel.addEventListener("change", function () {
+      draft.agentId = agentSel.value;
+      var existing = (AppState.monthEntries || []).find(function (e) { return e.agentId === draft.agentId && e.week === draft.week; });
+      if (existing) {
+        ACTIONS.forEach(function (a) { draft.counts[a.key] = existing.counts[a.key] || 0; });
+        draft.dealSum = existing.dealSum || 0;
+      }
+      render();
+    });
+
+    root.querySelectorAll("[data-bump]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var key = btn.getAttribute("data-bump");
+        var delta = Number(btn.getAttribute("data-delta"));
+        draft.counts[key] = Math.max(0, (draft.counts[key] || 0) + delta);
+        render();
+      });
+    });
+
+    var dealSumInput = root.querySelector("#f-dealsum");
+    if (dealSumInput) dealSumInput.addEventListener("input", function () { draft.dealSum = Number(dealSumInput.value) || 0; });
+
+    var saveBtn = root.querySelector("#save-entry");
+    if (saveBtn) saveBtn.addEventListener("click", async function () {
+      if (!draft.agentId) return;
+      var countsCopy = {};
+      ACTIONS.forEach(function (a) { countsCopy[a.key] = draft.counts[a.key] || 0; });
+      var entry = { week: draft.week, agentId: draft.agentId, counts: countsCopy, dealSum: Number(draft.dealSum) || 0 };
+      await saveEntry(entry);
+      ACTIONS.forEach(function (a) { draft.counts[a.key] = 0; });
+      draft.dealSum = 0;
+      render();
+    });
+
+    var filterSel = root.querySelector("#filter-week");
+    if (filterSel) filterSel.addEventListener("change", function () { UI.filterWeek = filterSel.value; render(); });
+
+    root.querySelectorAll("[data-del-entry-agent]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        await deleteEntryDoc(btn.getAttribute("data-del-entry-agent"), Number(btn.getAttribute("data-del-entry-week")));
+      });
+    });
+  }
+
+  function bindTeamEvents() {
+    var newRopInput = root.querySelector("#new-rop-name");
+    if (newRopInput) newRopInput.addEventListener("input", function () { UI2.newRopName = newRopInput.value; });
+    var newRopCitySel = root.querySelector("#new-rop-city");
+    if (newRopCitySel) newRopCitySel.addEventListener("change", function () { UI2.newRopCity = newRopCitySel.value; });
+
+    var addRopBtn = root.querySelector("#add-rop-btn");
+    if (addRopBtn) addRopBtn.addEventListener("click", async function () {
+      var name = (UI2.newRopName || "").trim();
+      if (!name) return;
+      var newTeams = AppState.teams.concat([{ id: uid(), name: name, city: UI2.newRopCity || CITIES[0], count: 0 }]);
+      UI2.newRopName = "";
+      await saveTeamsFull(newTeams);
+    });
+
+    root.querySelectorAll("[data-del-rop]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var ropId = btn.getAttribute("data-del-rop");
+        var agentsToRemove = AppState.agents.filter(function (a) { return a.ropId === ropId; });
+        for (var i = 0; i < agentsToRemove.length; i++) await deleteAgentRow(agentsToRemove[i].id);
+        await deleteTeamRow(ropId);
+      });
+    });
+
+    root.querySelectorAll("[data-new-agent-input]").forEach(function (inp) {
+      inp.addEventListener("input", function () { UI2.newAgentNameByRop[inp.getAttribute("data-new-agent-input")] = inp.value; });
+    });
+
+    root.querySelectorAll("[data-add-agent]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var ropId = btn.getAttribute("data-add-agent");
+        var name = (UI2.newAgentNameByRop[ropId] || "").trim();
+        if (!name) return;
+        var newAgents = AppState.agents.concat([{ id: uid(), name: name, ropId: ropId }]);
+        var newTeams = AppState.teams.map(function (t) { return t.id === ropId ? Object.assign({}, t, { count: (t.count || 0) + 1 }) : t; });
+        UI2.newAgentNameByRop[ropId] = "";
+        await saveAgentsFull(newAgents);
+        await saveTeamsFull(newTeams);
+      });
+    });
+
+    root.querySelectorAll("[data-del-agent]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var agentId = btn.getAttribute("data-del-agent");
+        var agent = agentById(agentId);
+        await deleteAgentRow(agentId);
+        if (agent) {
+          var newTeams = AppState.teams.map(function (t) { return t.id === agent.ropId ? Object.assign({}, t, { count: Math.max(0, (t.count || 0) - 1) }) : t; });
+          await saveTeamsFull(newTeams);
+        }
+      });
+    });
+  }
+
+  function bindSettingsEvents() {
+    function patchSettings(mutator) {
+      var s = JSON.parse(JSON.stringify(AppState.monthSettings || defaultSettings()));
+      mutator(s);
+      saveMonthSettings(s);
+    }
+    root.querySelectorAll("[data-point-key]").forEach(function (inp) {
+      inp.addEventListener("change", function () { var key = inp.getAttribute("data-point-key"); patchSettings(function (s) { s.points[key] = Number(inp.value) || 0; }); });
+    });
+    var weeklyMin = root.querySelector("#weekly-min");
+    if (weeklyMin) weeklyMin.addEventListener("change", function () { patchSettings(function (s) { s.weeklyMin = Number(weeklyMin.value) || 0; }); });
+    var weeksPerMonth = root.querySelector("#weeks-per-month");
+    if (weeksPerMonth) weeksPerMonth.addEventListener("change", function () { patchSettings(function (s) { s.weeksPerMonth = Number(weeksPerMonth.value) || 0; }); });
+    root.querySelectorAll("[data-tier]").forEach(function (inp) {
+      inp.addEventListener("change", function () { var key = inp.getAttribute("data-tier"); patchSettings(function (s) { s.tierMult[key] = Number(inp.value) || 0; }); });
+    });
+    root.querySelectorAll("[data-boost-week]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var week = btn.getAttribute("data-boost-week"), key = btn.getAttribute("data-boost-key");
+        patchSettings(function (s) {
+          var arr = s.weekBoosts[week] || []; var idx = arr.indexOf(key);
+          if (idx >= 0) arr.splice(idx, 1); else arr.push(key);
+          s.weekBoosts[week] = arr;
+        });
+      });
+    });
+    var revenuePlan = root.querySelector("#revenue-plan");
+    if (revenuePlan) revenuePlan.addEventListener("change", function () { patchSettings(function (s) { s.revenuePlan = Number(revenuePlan.value) || 0; }); });
+    root.querySelectorAll("[data-comm]").forEach(function (inp) {
+      inp.addEventListener("change", function () { var key = inp.getAttribute("data-comm"); patchSettings(function (s) { s.commission[key] = Number(inp.value) || 0; }); });
+    });
+  }
+
+  function bindAdminEvents() {
+    var pinSubmit = root.querySelector("#admin-pin-submit");
+    if (pinSubmit) pinSubmit.addEventListener("click", async function () {
+      var pin = root.querySelector("#admin-pin-input").value;
+      if (!pin) return;
+      var ok = await tryAdminPin(pin);
+      if (ok) {
+        AppState.isAdmin = true;
+        sessionStorage.setItem("rop-admin", "1");
+        adminPinMsg = "";
+      } else {
+        // Пин ещё не задан вообще — первый ввод устанавливает его.
+        var setOk = await setAdminPin("", pin);
+        if (setOk) { AppState.isAdmin = true; sessionStorage.setItem("rop-admin", "1"); adminPinMsg = ""; }
+        else { adminPinMsg = "Неверный пин-код."; }
+      }
+      render();
+    });
+
+    var exportBtn = root.querySelector("#export-excel-btn");
+    if (exportBtn) exportBtn.addEventListener("click", exportAllToExcel);
+
+    var pinChangeBtn = root.querySelector("#pin-change-btn");
+    if (pinChangeBtn) pinChangeBtn.addEventListener("click", async function () {
+      var oldPin = root.querySelector("#pin-old").value;
+      var newPin = root.querySelector("#pin-new").value;
+      var statusEl = root.querySelector("#pin-change-status");
+      if (!newPin) return;
+      var ok = await setAdminPin(oldPin, newPin);
+      statusEl.textContent = ok ? "Пин-код обновлён." : "Не удалось: неверный текущий пин.";
+    });
+
+    var logoutBtn = root.querySelector("#admin-logout-btn");
+    if (logoutBtn) logoutBtn.addEventListener("click", function () {
+      AppState.isAdmin = false;
+      sessionStorage.removeItem("rop-admin");
+      render();
+    });
+  }
+
+  /* ============================================================
+     СТАРТ
+  ============================================================ */
+  render();
+  dbInit();
+})();
+</script>
+</body>
+</html>
