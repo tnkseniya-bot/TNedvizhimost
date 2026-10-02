@@ -244,7 +244,7 @@ select, input[type=text], input[type=number], input[type=password] {
   ============================================================
 -->
 <script>
-  window.SUPABASE_URL = "https://otponkovvffoekilrdfi.supabase.co/rest/v1/";
+  window.SUPABASE_URL = "https://otponkovvffoekilrdfi.supabase.co";
   window.SUPABASE_ANON_KEY = "sb_publishable_at50zCEWjfDjmD3obZnWKw_MUaxZZL1";
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -284,7 +284,7 @@ select, input[type=text], input[type=number], input[type=password] {
   }
 
   function monthKey(year, monthIdx) { return year + "-" + String(monthIdx + 1).padStart(2, "0"); }
-  function monthLabel(key) { var p = key.split("-"); return RUS_MONTHS[Number(p[1]) - 1] + " " + p[0]; }
+  function monthLabel(key) { if (!key) return "—"; var p = key.split("-"); return RUS_MONTHS[Number(p[1]) - 1] + " " + p[0]; }
   function monthKeyAddMonths(key, delta) {
     var p = key.split("-"); var y = Number(p[0]), m = Number(p[1]) - 1;
     var total = y * 12 + m + delta; var ny = Math.floor(total / 12), nm = ((total % 12) + 12) % 12;
@@ -313,11 +313,17 @@ select, input[type=text], input[type=number], input[type=password] {
   /* ============================================================
      СЛОЙ ДАННЫХ: Supabase (общая база, одинаковая для всех)
   ============================================================ */
+  // sessionStorage может быть недоступен (приватный режим, строгие настройки) — не даём этому ронять сайт
+  var safeSession = {
+    get: function (k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
+    del: function (k) { try { sessionStorage.removeItem(k); } catch (e) {} }
+  };
   var supa = null;
   var AppState = {
     ready: false,
     configOk: null,
-    isAdmin: sessionStorage.getItem("rop-admin") === "1",
+    isAdmin: safeSession.get("rop-admin") === "1",
     teams: [],
     agents: [],
     monthOrder: [],
@@ -334,9 +340,17 @@ select, input[type=text], input[type=number], input[type=password] {
   }
 
   function checkConfig() {
-    var url = window.SUPABASE_URL, key = window.SUPABASE_ANON_KEY;
+    var url = (window.SUPABASE_URL || "").trim(), key = (window.SUPABASE_ANON_KEY || "").trim();
     if (!url || !key || url.indexOf("PASTE_YOUR") === 0 || key.indexOf("PASTE_YOUR") === 0) return false;
+    // Убираем случайный хвост вроде /rest/v1/ и лишние слэши — нужен только https://xxxx.supabase.co
+    url = url.replace(/\/rest\/v1\/?$/i, "").replace(/\/+$/, "");
+    window.SUPABASE_URL = url;
+    window.SUPABASE_ANON_KEY = key;
     return true;
+  }
+
+  function isSecretKey(key) {
+    return /^sb_secret_/i.test(key) || /service_role/i.test(key);
   }
 
   var channels = [];
@@ -344,29 +358,46 @@ select, input[type=text], input[type=number], input[type=password] {
     AppState.configOk = checkConfig();
     if (!AppState.configOk) { AppState.ready = true; render(); return; }
 
-    supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-
-    await Promise.all([loadTeams(), loadAgents(), loadMonthOrder()]);
-    if (AppState.monthOrder.length) {
-      AppState.currentMonth = AppState.monthOrder[AppState.monthOrder.length - 1];
-      await loadCurrentMonth();
+    if (isSecretKey(window.SUPABASE_ANON_KEY)) {
+      AppState.loadError = "В index.html вставлен СЕКРЕТНЫЙ ключ (sb_secret_… / service_role). Его нельзя выкладывать на сайт. Возьмите публичный ключ: Supabase → Project Settings → API → «Publishable key» (sb_publishable_…) или «anon public».";
+      AppState.ready = true; render(); return;
     }
-    AppState.ready = true;
-    render();
-    subscribeRealtime();
+
+    try {
+      supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+      await Promise.all([loadTeams(), loadAgents(), loadMonthOrder()]);
+      if (AppState.loadError) { AppState.ready = true; render(); return; }
+      if (AppState.monthOrder.length) {
+        AppState.currentMonth = AppState.monthOrder[AppState.monthOrder.length - 1];
+        await loadCurrentMonth();
+      }
+      AppState.ready = true;
+      render();
+      subscribeRealtime();
+    } catch (e) {
+      AppState.loadError = "Не удалось подключиться к Supabase: " + (e && e.message ? e.message : e) + ". Проверьте SUPABASE_URL (должно быть вида https://xxxx.supabase.co) и ключ.";
+      AppState.ready = true; render();
+    }
   }
 
+  function noteLoadError(table, error) {
+    AppState.loadError = "Supabase не отдал таблицу «" + table + "» (" + (error.message || error.code || "ошибка") + "). " +
+      "Проверьте: 1) SUPABASE_URL — только https://xxxx.supabase.co, без /rest/v1; 2) выполнен supabase_schema.sql; 3) ключ публичный (publishable / anon).";
+  }
   async function loadTeams() {
     var { data, error } = await supa.from("teams").select("*").order("name");
-    if (!error) AppState.teams = data || [];
+    if (error) { noteLoadError("teams", error); return; }
+    AppState.teams = data || [];
   }
   async function loadAgents() {
     var { data, error } = await supa.from("agents").select("*");
-    if (!error) AppState.agents = (data || []).map(function (r) { return { id: r.id, name: r.name, ropId: r.rop_id }; });
+    if (error) { noteLoadError("agents", error); return; }
+    AppState.agents = (data || []).map(function (r) { return { id: r.id, name: r.name, ropId: r.rop_id }; });
   }
   async function loadMonthOrder() {
     var { data, error } = await supa.from("month_order").select("key").order("key");
-    if (!error) AppState.monthOrder = (data || []).map(function (r) { return r.key; });
+    if (error) { noteLoadError("month_order", error); return; }
+    AppState.monthOrder = (data || []).map(function (r) { return r.key; });
   }
   async function loadCurrentMonth() {
     var key = AppState.currentMonth;
@@ -1168,8 +1199,18 @@ select, input[type=text], input[type=number], input[type=password] {
         '<div style="max-width:480px;text-align:center;">Сайт ещё не настроен: впишите Project URL и anon key вашего проекта Supabase в начало файла index.html (переменные SUPABASE_URL и SUPABASE_ANON_KEY) и выполните supabase_schema.sql в Supabase SQL Editor.</div></div>';
       return;
     }
+    if (AppState.loadError) {
+      root.innerHTML = '<div class="loading-screen"><div style="font-size:32px;">⚠️</div>' +
+        '<div style="max-width:560px;text-align:center;line-height:1.5;">' + esc(AppState.loadError) + '</div></div>';
+      return;
+    }
     if (!AppState.ready) {
       root.innerHTML = '<div class="loading-screen"><div class="spinner"></div><div>Загрузка данных…</div></div>';
+      return;
+    }
+    if (!AppState.currentMonth) {
+      root.innerHTML = '<div class="loading-screen"><div style="font-size:32px;">📭</div>' +
+        '<div style="max-width:560px;text-align:center;line-height:1.5;">В базе пока нет ни одного месяца. Выполните supabase_schema.sql в Supabase SQL Editor (он создаёт август 2026 и все команды).</div></div>';
       return;
     }
     var body = "";
@@ -1365,12 +1406,12 @@ select, input[type=text], input[type=number], input[type=password] {
       var ok = await tryAdminPin(pin);
       if (ok) {
         AppState.isAdmin = true;
-        sessionStorage.setItem("rop-admin", "1");
+        safeSession.set("rop-admin", "1");
         adminPinMsg = "";
       } else {
         // Пин ещё не задан вообще — первый ввод устанавливает его.
         var setOk = await setAdminPin("", pin);
-        if (setOk) { AppState.isAdmin = true; sessionStorage.setItem("rop-admin", "1"); adminPinMsg = ""; }
+        if (setOk) { AppState.isAdmin = true; safeSession.set("rop-admin", "1"); adminPinMsg = ""; }
         else { adminPinMsg = "Неверный пин-код."; }
       }
       render();
@@ -1392,7 +1433,7 @@ select, input[type=text], input[type=number], input[type=password] {
     var logoutBtn = root.querySelector("#admin-logout-btn");
     if (logoutBtn) logoutBtn.addEventListener("click", function () {
       AppState.isAdmin = false;
-      sessionStorage.removeItem("rop-admin");
+      safeSession.del("rop-admin");
       render();
     });
   }
