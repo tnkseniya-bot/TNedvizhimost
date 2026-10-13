@@ -114,6 +114,15 @@ img { max-width: 100%; }
 .empty { padding: 12px 0; }
 
 /* ---------- KPI ---------- */
+.seg { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px 0; }
+.seg button { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: 7px 16px; font-size: 13px; cursor: pointer; font-family: inherit; }
+.seg button.active { background: linear-gradient(135deg,#D4B483,#B8935B 55%,#A07C48); color: #0D1136; border-color: transparent; font-weight: 700; }
+.bar { height: 8px; background: #EFEBE2; border-radius: 4px; min-width: 70px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg,#D4B483,#A07C48); }
+.bar i.over { background: linear-gradient(90deg,#6DAE7B,#3F8F58); }
+.seal-pair { display: flex; gap: 2px; flex-shrink: 0; }
+.seal-cap { text-align: center; font-size: 10px; color: var(--slate); margin-top: -4px; text-transform: uppercase; letter-spacing: .06em; }
+.tbl tr.total td { font-weight: 700; border-top: 2px solid var(--gold); }
 .dash-top { display: flex; gap: 16px; flex-wrap: wrap; }
 .kpi {
   background: var(--card); border-radius: 10px; padding: 16px 22px; min-width: 190px; flex: 1;
@@ -125,7 +134,7 @@ img { max-width: 100%; }
 .kpi-value.gold { background: var(--gold-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 /* ---------- Gauges ---------- */
-.seal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px,1fr)); gap: 16px; }
+.seal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px,1fr)); gap: 16px; }
 .seal-card { background: var(--card); border-radius: 10px; padding: 16px; display: flex; gap: 14px; align-items: center; box-shadow: 0 8px 24px rgba(0,0,0,0.22); color: var(--ink); }
 .seal-num { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 21px; font-weight: 700; fill: var(--ink); }
 .seal-sub { font-size: 9px; fill: var(--slate); text-transform: uppercase; letter-spacing: 0.06em; }
@@ -195,6 +204,8 @@ select, input[type=text], input[type=number], input[type=password] {
 
 /* ---------- Settings ---------- */
 .settings { display: flex; flex-direction: column; gap: 18px; }
+.settings-locked { opacity: .55; filter: grayscale(.3); }
+input:disabled, button:disabled { cursor: not-allowed; opacity: .7; }
 .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px,1fr)); gap: 14px; }
 .settings-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--slate); font-weight: 600; }
 .settings-field input { font-family: 'SFMono-Regular', Consolas, monospace; }
@@ -257,8 +268,7 @@ select, input[type=text], input[type=number], input[type=password] {
      ДАННЫЕ ПО УМОЛЧАНИЮ / КОНСТАНТЫ
   ============================================================ */
   var ACTIONS = [
-    { key: "secondary", label: "Объект.вторичка", short: "Вторичка", def: 0.5 },
-    { key: "photo", label: "Фото объекта", short: "Фото", def: 0.5 },
+    { key: "secondary", label: "Добавление вторички", short: "Добавление вторички", def: 0.5 },
     { key: "banner", label: "Баннер", short: "Баннер", def: 1 },
     { key: "showing", label: "Проведённый показ / встреча", short: "Показ", def: 1 },
     { key: "meeting", label: "Назначенная встреча", short: "Встреча (назн.)", def: 0.5 },
@@ -277,21 +287,41 @@ select, input[type=text], input[type=number], input[type=password] {
     ACTIONS.forEach(function (a) { points[a.key] = a.def; });
     return {
       points: points, weeklyMin: 4.5, weeksPerMonth: 4,
-      tierMult: { t05: 1, t1: 1.4, t2: 2 }, revenuePlan: 500000,
+      tierMult: { t05: 1, t1: 1.4, t2: 2 }, revenuePlan: 500000, teamRevenuePlans: {}, ratingRevStep: 50000, ratingRevPts: 3,
       commission: { p1: 30, p2: 60, p3: 95, aRate: 42, aStandard: 45, aDealsCount: 3, bRate: 45, cRate: 48, dRate: 50 },
       weekBoosts: { 1: ["meeting","secondary","banner","mortgage"], 2: ["showing","mortgage","booking"], 3: ["deposit","deal","showing"], 4: ["deal","deposit","secondary"] }
     };
   }
 
   function monthKey(year, monthIdx) { return year + "-" + String(monthIdx + 1).padStart(2, "0"); }
-  function monthLabel(key) { var p = key.split("-"); return RUS_MONTHS[Number(p[1]) - 1] + " " + p[0]; }
+  function monthLabel(key) { if (!key) return "—"; var p = key.split("-"); return RUS_MONTHS[Number(p[1]) - 1] + " " + p[0]; }
   function monthKeyAddMonths(key, delta) {
     var p = key.split("-"); var y = Number(p[0]), m = Number(p[1]) - 1;
     var total = y * 12 + m + delta; var ny = Math.floor(total / 12), nm = ((total % 12) + 12) % 12;
     return monthKey(ny, nm);
   }
   function uid() { return Math.random().toString(36).slice(2, 10); }
-  function entryDocId(monthKeyV, agentId, week) { return monthKeyV + "_" + agentId + "_w" + week; }
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function weekOfDay(day) { return Math.min(4, Math.max(1, Math.ceil(day / 7))); }
+  function daysInMonth(key) { var p = key.split("-"); return new Date(Number(p[0]), Number(p[1]), 0).getDate(); }
+  function mapEntry(r) {
+    var day = r.day || ((Number(r.week) || 1) - 1) * 7 + 1;
+    return { agentId: r.agent_id, day: day, week: weekOfDay(day), ropId: r.rop_id || null, counts: r.counts || {}, dealSum: Number(r.deal_sum) || 0 };
+  }
+  function entryTeamId(e) {
+    if (e.ropId) return e.ropId;
+    var a = agentById(e.agentId); return a ? a.ropId : null;
+  }
+  // неделя считается завершённой, когда её последний день уже прошёл
+  function weekCompleted(monthKeyV, w) {
+    var now = new Date();
+    var cur = now.getFullYear() + "-" + pad2(now.getMonth() + 1);
+    if (monthKeyV < cur) return true;
+    if (monthKeyV > cur) return false;
+    var endDay = w >= 4 ? daysInMonth(monthKeyV) : w * 7;
+    return now.getDate() > endDay;
+  }
+  function dayLabel(day) { return pad2(day) + "." + (AppState.currentMonth ? AppState.currentMonth.split("-")[1] : "??"); }
 
   function entryPoints(counts, points, week, weekBoosts) {
     var boosted = (weekBoosts && weekBoosts[week]) || [];
@@ -313,11 +343,22 @@ select, input[type=text], input[type=number], input[type=password] {
   /* ============================================================
      СЛОЙ ДАННЫХ: Supabase (общая база, одинаковая для всех)
   ============================================================ */
+  // sessionStorage может быть недоступен (приватный режим, строгие настройки) — не даём этому ронять сайт
+  var safeSession = {
+    get: function (k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
+    del: function (k) { try { sessionStorage.removeItem(k); } catch (e) {} }
+  };
   var supa = null;
   var AppState = {
     ready: false,
     configOk: null,
-    isAdmin: sessionStorage.getItem("rop-admin") === "1",
+    isAdmin: !!safeSession.get("rop-admin"),
+    adminPin: safeSession.get("rop-admin") || "",
+    me: (function () { try { return JSON.parse(safeSession.get("rop-agent") || "null"); } catch (e) { return null; } })(),
+    agentPinIds: [],
+    ropPinIds: [],
+    rop: (function () { try { return JSON.parse(safeSession.get("rop-login") || "null"); } catch (e) { return null; } })(),
     teams: [],
     agents: [],
     monthOrder: [],
@@ -334,9 +375,17 @@ select, input[type=text], input[type=number], input[type=password] {
   }
 
   function checkConfig() {
-    var url = window.SUPABASE_URL, key = window.SUPABASE_ANON_KEY;
+    var url = (window.SUPABASE_URL || "").trim(), key = (window.SUPABASE_ANON_KEY || "").trim();
     if (!url || !key || url.indexOf("PASTE_YOUR") === 0 || key.indexOf("PASTE_YOUR") === 0) return false;
+    // Убираем случайный хвост вроде /rest/v1/ и лишние слэши — нужен только https://xxxx.supabase.co
+    url = url.replace(/\/rest\/v1\/?$/i, "").replace(/\/+$/, "");
+    window.SUPABASE_URL = url;
+    window.SUPABASE_ANON_KEY = key;
     return true;
+  }
+
+  function isSecretKey(key) {
+    return /^sb_secret_/i.test(key) || /service_role/i.test(key);
   }
 
   var channels = [];
@@ -344,44 +393,64 @@ select, input[type=text], input[type=number], input[type=password] {
     AppState.configOk = checkConfig();
     if (!AppState.configOk) { AppState.ready = true; render(); return; }
 
-    supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-
-    await Promise.all([loadTeams(), loadAgents(), loadMonthOrder()]);
-    if (AppState.monthOrder.length) {
-      AppState.currentMonth = AppState.monthOrder[AppState.monthOrder.length - 1];
-      await loadCurrentMonth();
+    if (isSecretKey(window.SUPABASE_ANON_KEY)) {
+      AppState.loadError = "В index.html вставлен СЕКРЕТНЫЙ ключ (sb_secret_… / service_role). Его нельзя выкладывать на сайт. Возьмите публичный ключ: Supabase → Project Settings → API → «Publishable key» (sb_publishable_…) или «anon public».";
+      AppState.ready = true; render(); return;
     }
-    AppState.ready = true;
-    render();
-    subscribeRealtime();
+
+    try {
+      supa = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+      await Promise.all([loadTeams(), loadAgents(), loadMonthOrder(), loadAgentPinStatus(), loadRopPinStatus()]);
+      if (AppState.loadError) { AppState.ready = true; render(); return; }
+      if (AppState.monthOrder.length) {
+        var activeM = await loadActiveMonth();
+        AppState.currentMonth = (activeM && AppState.monthOrder.indexOf(activeM) >= 0) ? activeM : AppState.monthOrder[AppState.monthOrder.length - 1];
+        await loadCurrentMonth();
+      }
+      AppState.ready = true;
+      render();
+      subscribeRealtime();
+    } catch (e) {
+      AppState.loadError = "Не удалось подключиться к Supabase: " + (e && e.message ? e.message : e) + ". Проверьте SUPABASE_URL (должно быть вида https://xxxx.supabase.co) и ключ.";
+      AppState.ready = true; render();
+    }
   }
 
+  function noteLoadError(table, error) {
+    AppState.loadError = "Supabase не отдал таблицу «" + table + "» (" + (error.message || error.code || "ошибка") + "). " +
+      "Проверьте: 1) SUPABASE_URL — только https://xxxx.supabase.co, без /rest/v1; 2) выполнен supabase_schema.sql; 3) ключ публичный (publishable / anon).";
+  }
   async function loadTeams() {
     var { data, error } = await supa.from("teams").select("*").order("name");
-    if (!error) AppState.teams = data || [];
+    if (error) { noteLoadError("teams", error); return; }
+    AppState.teams = data || [];
   }
   async function loadAgents() {
     var { data, error } = await supa.from("agents").select("*");
-    if (!error) AppState.agents = (data || []).map(function (r) { return { id: r.id, name: r.name, ropId: r.rop_id }; });
+    if (error) { noteLoadError("agents", error); return; }
+    AppState.agents = (data || []).map(function (r) { return { id: r.id, name: r.name, ropId: r.rop_id }; });
   }
   async function loadMonthOrder() {
     var { data, error } = await supa.from("month_order").select("key").order("key");
-    if (!error) AppState.monthOrder = (data || []).map(function (r) { return r.key; });
+    if (error) { noteLoadError("month_order", error); return; }
+    AppState.monthOrder = (data || []).map(function (r) { return r.key; });
   }
   async function loadCurrentMonth() {
     var key = AppState.currentMonth;
     var { data: mData } = await supa.from("months").select("settings").eq("key", key).maybeSingle();
     AppState.monthSettings = (mData && mData.settings) || defaultSettings();
     var { data: eData } = await supa.from("entries").select("*").eq("month_key", key);
-    AppState.monthEntries = (eData || []).map(function (r) {
-      return { agentId: r.agent_id, week: r.week, counts: r.counts || {}, dealSum: Number(r.deal_sum) || 0 };
-    });
+    AppState.monthEntries = (eData || []).map(mapEntry);
+  }
+  async function loadActiveMonth() {
+    var { data } = await supa.from("app_state").select("active_month").eq("id", 1).maybeSingle();
+    return data && data.active_month ? data.active_month : null;
   }
 
   function subscribeRealtime() {
     channels.forEach(function (ch) { supa.removeChannel(ch); });
     channels = [];
-    ["teams", "agents", "month_order", "months", "entries"].forEach(function (table) {
+    ["teams", "agents", "month_order", "months", "entries", "app_state"].forEach(function (table) {
       var ch = supa.channel("live-" + table)
         .on("postgres_changes", { event: "*", schema: "public", table: table }, async function () {
           if (table === "teams") await loadTeams();
@@ -398,9 +467,13 @@ select, input[type=text], input[type=number], input[type=password] {
             if (data) AppState.monthSettings = data.settings;
           } else if (table === "entries" && AppState.currentMonth) {
             var { data: eData } = await supa.from("entries").select("*").eq("month_key", AppState.currentMonth);
-            AppState.monthEntries = (eData || []).map(function (r) {
-              return { agentId: r.agent_id, week: r.week, counts: r.counts || {}, dealSum: Number(r.deal_sum) || 0 };
-            });
+            AppState.monthEntries = (eData || []).map(mapEntry);
+          } else if (table === "app_state") {
+            var act = await loadActiveMonth();
+            if (act && act !== AppState.currentMonth) {
+              if (AppState.monthOrder.indexOf(act) < 0) await loadMonthOrder();
+              if (AppState.monthOrder.indexOf(act) >= 0) { AppState.currentMonth = act; await loadCurrentMonth(); }
+            }
           }
           render();
         })
@@ -416,25 +489,66 @@ select, input[type=text], input[type=number], input[type=password] {
     render();
     await loadCurrentMonth();
     render();
+    if (AppState.isAdmin && AppState.adminPin) await supa.rpc("admin_set_active_month", { p_admin_pin: AppState.adminPin, p_month: key });
   }
 
   // ---------- Записи (баллы за неделю) ----------
-  async function saveEntry(entry) {
-    if (!supa || !AppState.currentMonth) return;
-    setSync("saving");
-    var id = entryDocId(AppState.currentMonth, entry.agentId, entry.week);
-    var row = { id: id, month_key: AppState.currentMonth, week: entry.week, agent_id: entry.agentId, counts: entry.counts, deal_sum: entry.dealSum, updated_at: new Date().toISOString() };
-    var { error } = await supa.from("entries").upsert(row);
-    setSync(error ? "off" : "ok");
-    if (!error) await loadCurrentMonth();
+  // Кто и каким пином имеет право писать: админ — за всех, РОП — за свою команду
+  function writeCreds() {
+    if (AppState.isAdmin && AppState.adminPin) return { pin: AppState.adminPin, ropId: "" };
+    if (AppState.rop) return { pin: AppState.rop.pin, ropId: AppState.rop.id };
+    return { pin: "", ropId: "" };
   }
-  async function deleteEntryDoc(agentId, week) {
-    if (!supa || !AppState.currentMonth) return;
+  function accessDenied() {
+    if (AppState.isAdmin && AppState.adminPin) { AppState.isAdmin = false; AppState.adminPin = ""; safeSession.del("rop-admin"); }
+    else { AppState.rop = null; safeSession.del("rop-login"); }
+    alert("Не удалось сохранить: нет прав на эту запись (пин не подошёл или агент в другой команде). Войдите заново.");
+    render();
+  }
+  async function saveEntry(entry) {
+    if (!supa || !AppState.currentMonth) return false;
     setSync("saving");
-    var id = entryDocId(AppState.currentMonth, agentId, week);
-    var { error } = await supa.from("entries").delete().eq("id", id);
-    setSync(error ? "off" : "ok");
-    if (!error) await loadCurrentMonth();
+    var c = writeCreds();
+    var { data, error } = await supa.rpc("save_entry_secure", {
+      p_pin: c.pin, p_rop_id: c.ropId, p_agent_id: entry.agentId, p_month: AppState.currentMonth,
+      p_day: entry.day, p_counts: entry.counts, p_deal_sum: entry.dealSum
+    });
+    if (error) { setSync("off"); alert("Ошибка сохранения: " + error.message + " (выполнен ли supabase_roles_days.sql?)"); return false; }
+    if (data !== true) { setSync("off"); accessDenied(); return false; }
+    setSync("ok");
+    await loadCurrentMonth();
+    return true;
+  }
+  async function deleteEntryDoc(agentId, day) {
+    if (!supa || !AppState.currentMonth) return false;
+    setSync("saving");
+    var c = writeCreds();
+    var { data, error } = await supa.rpc("delete_entry_secure", {
+      p_pin: c.pin, p_rop_id: c.ropId, p_agent_id: agentId, p_month: AppState.currentMonth, p_day: day
+    });
+    if (error) { setSync("off"); alert("Ошибка: " + error.message); return false; }
+    if (data !== true) { setSync("off"); accessDenied(); return false; }
+    setSync("ok");
+    await loadCurrentMonth();
+    return true;
+  }
+  async function loadRopPinStatus() {
+    if (!supa) return;
+    var { data } = await supa.rpc("rop_pin_status");
+    AppState.ropPinIds = Array.isArray(data) ? data : [];
+  }
+  async function ropLogin(ropId, pin) {
+    var { data, error } = await supa.rpc("rop_login", { p_rop_id: ropId, p_pin: pin });
+    return !error && data === true;
+  }
+  async function loadAgentPinStatus() {
+    if (!supa) return;
+    var { data } = await supa.rpc("agent_pin_status");
+    AppState.agentPinIds = Array.isArray(data) ? data : [];
+  }
+  async function agentLogin(agentId, pin) {
+    var { data, error } = await supa.rpc("agent_login", { p_agent_id: agentId, p_pin: pin });
+    return !error && data === true;
   }
 
   // ---------- Настройки месяца ----------
@@ -494,7 +608,7 @@ select, input[type=text], input[type=number], input[type=password] {
     var { data: eData } = await supa.from("entries").select("*").eq("month_key", key);
     var result = {
       settings: mData.settings,
-      entries: (eData || []).map(function (r) { return { agentId: r.agent_id, week: r.week, counts: r.counts || {}, dealSum: Number(r.deal_sum) || 0 }; })
+      entries: (eData || []).map(mapEntry)
     };
     prevMonthCache[key] = result;
     return result;
@@ -524,14 +638,13 @@ select, input[type=text], input[type=number], input[type=password] {
     var settings = AppState.monthSettings || defaultSettings();
     var entries = AppState.monthEntries || [];
     return AppState.teams.map(function (t) {
-      var teamAgentIds = {};
-      AppState.agents.forEach(function (a) { if (a.ropId === t.id) teamAgentIds[a.id] = true; });
-      var teamEntries = entries.filter(function (e) { return teamAgentIds[e.agentId]; });
+      var teamEntries = entries.filter(function (e) { return entryTeamId(e) === t.id; });
       var totalPts = teamEntries.reduce(function (s, e) {
         return s + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
       }, 0);
       var deals = teamEntries.reduce(function (s, e) { return s + (e.counts.deal || 0); }, 0);
       var revenue = teamEntries.reduce(function (s, e) { return s + (e.dealSum || 0); }, 0);
+      var agentCount = AppState.agents.filter(function (a) { return a.ropId === t.id; }).length;
       var base = t.count * settings.weeklyMin * settings.weeksPerMonth;
       var th05 = base * settings.tierMult.t05;
       var th1 = base * settings.tierMult.t1;
@@ -543,15 +656,21 @@ select, input[type=text], input[type=number], input[type=password] {
       var bonus = revenue * tier;
       var progress = th2 > 0 ? Math.min(1, totalPts / th2) : 0;
 
+      var revPlan = Number((settings.teamRevenuePlans || {})[t.id]);
+      if (!(revPlan > 0)) revPlan = (settings.revenuePlan || 0) * (t.count || agentCount);
+      var revPct = revPlan > 0 ? revenue / revPlan * 100 : 0;
+      var ptsPct = base > 0 ? totalPts / base * 100 : 0;
+
+      // агенто-недели ниже нормы (только завершённые недели)
+      var perAW = {};
+      teamEntries.forEach(function (e) {
+        var k = e.agentId + "|" + e.week;
+        perAW[k] = (perAW[k] || 0) + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
+      });
       var below = 0;
-      WEEKS.forEach(function (w) {
-        Object.keys(teamAgentIds).forEach(function (aid) {
-          var e = entries.find(function (x) { return x.agentId === aid && x.week === w; });
-          if (e) {
-            var p = entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
-            if (p < settings.weeklyMin) below++;
-          }
-        });
+      Object.keys(perAW).forEach(function (k) {
+        var w = Number(k.split("|")[1]);
+        if (weekCompleted(AppState.currentMonth, w) && perAW[k] < settings.weeklyMin) below++;
       });
 
       var catCounts = {};
@@ -559,22 +678,25 @@ select, input[type=text], input[type=number], input[type=password] {
         catCounts[a.key] = teamEntries.reduce(function (s, e) { return s + (e.counts[a.key] || 0); }, 0);
       });
 
-      var agentCount = Object.keys(teamAgentIds).length;
       return {
         id: t.id, name: t.name, city: t.city, count: t.count, agentCount: agentCount,
-        totalPts: totalPts, deals: deals, th05: th05, th1: th1, th2: th2,
+        totalPts: totalPts, deals: deals, th05: th05, th1: th1, th2: th2, base: base,
         tier: tier, tierLabel: tierLabel, revenue: revenue, bonus: bonus,
-        progress: progress, below: below, catCounts: catCounts
+        progress: progress, below: below, catCounts: catCounts,
+        revPlan: revPlan, revPct: revPct, ptsPct: ptsPct
       };
     });
   }
   function computeTeamRanking(teamStats) {
-    return teamStats.slice().sort(function (a, b) { return b.totalPts - a.totalPts; });
+    return teamStats.slice().sort(function (a, b) { return (b.totalPts - a.totalPts) || (b.revenue - a.revenue); });
   }
 
+  // Рейтинг агента = баллы + (каждые N ₽ валовки) × M баллов (по умолчанию 50 000 ₽ → +3)
   function computeAgentStats() {
     var settings = AppState.monthSettings || defaultSettings();
     var entries = AppState.monthEntries || [];
+    var step = Number(settings.ratingRevStep) > 0 ? Number(settings.ratingRevStep) : 50000;
+    var stepPts = settings.ratingRevPts != null && settings.ratingRevPts !== "" ? Number(settings.ratingRevPts) : 3;
     return AppState.agents.map(function (a) {
       var aEntries = entries.filter(function (e) { return e.agentId === a.id; });
       var totalPts = aEntries.reduce(function (s, e) {
@@ -582,24 +704,29 @@ select, input[type=text], input[type=number], input[type=password] {
       }, 0);
       var deals = aEntries.reduce(function (s, e) { return s + (e.counts.deal || 0); }, 0);
       var revenue = aEntries.reduce(function (s, e) { return s + (e.dealSum || 0); }, 0);
+      var revBonus = Math.floor(revenue / step) * stepPts;
       var team = teamById(a.ropId);
-      return { id: a.id, name: a.name, ropId: a.ropId, ropName: team ? team.name : "—", city: team ? team.city : "—", totalPts: totalPts, deals: deals, revenue: revenue };
-    }).sort(function (a, b) { return b.totalPts - a.totalPts; });
+      return { id: a.id, name: a.name, ropId: a.ropId, ropName: team ? team.name : "—", city: team ? team.city : "—",
+        totalPts: totalPts, deals: deals, revenue: revenue, revBonus: revBonus, rating: totalPts + revBonus };
+    }).sort(function (a, b) { return (b.rating - a.rating) || (b.revenue - a.revenue); });
   }
 
   function computeBelowNormList() {
     var settings = AppState.monthSettings || defaultSettings();
     var entries = AppState.monthEntries || [];
-    var list = [];
+    var per = {};
     entries.forEach(function (e) {
-      var pts = entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
-      if (pts < settings.weeklyMin) {
-        var a = agentById(e.agentId);
-        if (a) {
-          var team = teamById(a.ropId);
-          list.push({ id: e.week + "_" + e.agentId, week: e.week, pts: pts, agentName: a.name, ropName: team ? team.name : "—" });
-        }
-      }
+      var k = e.agentId + "|" + e.week;
+      per[k] = (per[k] || 0) + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
+    });
+    var list = [];
+    Object.keys(per).forEach(function (k) {
+      var parts = k.split("|"), w = Number(parts[1]);
+      if (!weekCompleted(AppState.currentMonth, w) || per[k] >= settings.weeklyMin) return;
+      var a = agentById(parts[0]);
+      if (!a) return;
+      var team = teamById(a.ropId);
+      list.push({ id: k, week: w, pts: per[k], agentName: a.name, ropName: team ? team.name : "—", city: team ? team.city : "—" });
     });
     return list.sort(function (a, b) { return a.week - b.week; });
   }
@@ -640,8 +767,10 @@ select, input[type=text], input[type=number], input[type=password] {
     if (prevGrade.tier === "C") return { rate: c.cRate, note: "" };
     return { rate: c.dRate, note: "" };
   }
-  function sealSvg(progress, tierLabel, pts, size) {
-    size = size || 128;
+  function sealSvg(progress, tierLabel, pts, size, opts) {
+    size = size || 128; opts = opts || {};
+    var numText = opts.num != null ? opts.num : fmtPts(pts);
+    var unit = opts.unit || "баллов";
     var r = size / 2 - 10;
     var c = 2 * Math.PI * r;
     var dash = c * Math.min(1, Math.max(0, progress));
@@ -651,8 +780,8 @@ select, input[type=text], input[type=number], input[type=password] {
       '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + r + '" fill="none" stroke="#EFEBE2" stroke-width="8"/>' +
       '<circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + r + '" fill="none" stroke="url(#gg' + size + ')" stroke-width="8" stroke-linecap="round" ' +
         'stroke-dasharray="' + dash + ' ' + c + '" transform="rotate(-90 ' + (size / 2) + ' ' + (size / 2) + ')"/>' +
-      '<text x="50%" y="46%" text-anchor="middle" class="seal-num">' + esc(fmtPts(pts)) + '</text>' +
-      '<text x="50%" y="64%" text-anchor="middle" class="seal-sub">баллов</text>' +
+      '<text x="50%" y="46%" text-anchor="middle" class="seal-num">' + esc(numText) + '</text>' +
+      '<text x="50%" y="64%" text-anchor="middle" class="seal-sub">' + esc(unit) + '</text>' +
       '<text x="50%" y="80%" text-anchor="middle" class="seal-tier">' + esc(tierLabel) + '</text>' +
       '</svg>';
   }
@@ -661,73 +790,117 @@ select, input[type=text], input[type=number], input[type=password] {
      РЕНДЕР: ШАПКА / МЕСЯЦЫ / ВКЛАДКИ
   ============================================================ */
 
-  var UI = { tab: "dash", addMonthOpen: false, filterWeek: "all" };
+  var UI = { tab: "dash", addMonthOpen: false, filterWeek: "all", dashCity: "all" };
 
+  function barHtml(pct) {
+    return '<div class="bar"><i class="' + (pct >= 100 ? "over" : "") + '" style="width:' + Math.min(100, Math.max(0, pct)) + '%"></i></div>';
+  }
   function renderDashboard() {
     var settings = AppState.monthSettings || defaultSettings();
-    var teamStats = computeTeamStats();
+    var city = UI.dashCity || "all";
+    var allTeamStats = computeTeamStats();
+    var teamStats = allTeamStats.filter(function (t) { return city === "all" || t.city === city; });
     var teamRanking = computeTeamRanking(teamStats);
-    var agentStats = computeAgentStats();
-    var belowNormList = computeBelowNormList();
-    var totalCompanyPts = teamStats.reduce(function (s, t) { return s + t.totalPts; }, 0);
-    var totalCompanyBonus = teamStats.reduce(function (s, t) { return s + t.bonus; }, 0);
+    var agentStats = computeAgentStats().filter(function (a) { return city === "all" || a.city === city; });
+    var belowNormList = computeBelowNormList().filter(function (b) { return city === "all" || b.city === city; });
+    var sum = function (arr, f) { return arr.reduce(function (s, x) { return s + f(x); }, 0); };
+    var totPts = sum(teamStats, function (t) { return t.totalPts; });
+    var totPtsPlan = sum(teamStats, function (t) { return t.base; });
+    var totRev = sum(teamStats, function (t) { return t.revenue; });
+    var totRevPlan = sum(teamStats, function (t) { return t.revPlan; });
+    var totBonus = sum(teamStats, function (t) { return t.bonus; });
+    var pctOf = function (a, b) { return b > 0 ? a / b * 100 : 0; };
 
     var html = '<p class="muted on-dark" style="margin-top:-8px;">Показатели за: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b></p>';
+    html += '<div class="seg">' + [["all", "Общий (Тюмень + Екатеринбург)"]].concat(CITIES.map(function (c) { return [c, c]; })).map(function (c) {
+      return '<button data-dash-city="' + esc(c[0]) + '" class="' + (c[0] === city ? "active" : "") + '">' + esc(c[1]) + '</button>';
+    }).join("") + '</div>';
 
     html += '<div class="dash-top">' +
-      '<div class="kpi"><span class="kpi-label">Баллов по компании</span><span class="kpi-value">' + esc(fmtPts(totalCompanyPts)) + '</span></div>' +
-      '<div class="kpi"><span class="kpi-label">Суммарный бонус РОПов</span><span class="kpi-value gold">' + esc(fmtRub(totalCompanyBonus)) + '</span></div>' +
-      '<div class="kpi"><span class="kpi-label">Норма в неделю / агент</span><span class="kpi-value">' + esc(settings.weeklyMin) + ' балла</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Баллы: факт / план</span><span class="kpi-value">' + esc(fmtPts(totPts)) + ' / ' + esc(fmtPts(totPtsPlan)) + '</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Валовка: факт / план</span><span class="kpi-value gold">' + esc(fmtRub(totRev)) + ' / ' + esc(fmtRub(totRevPlan)) + '</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Суммарный бонус РОПов</span><span class="kpi-value gold">' + esc(fmtRub(totBonus)) + '</span></div>' +
       '</div>';
 
-    html += '<h2 class="section-title">Рейтинг команд (РОПов)</h2>';
+    // --- Таблица 1: план и факт валовки ---
+    html += '<h2 class="section-title">1. План и факт валовки</h2>';
+    html += '<div class="table-scroll"><table class="tbl"><thead><tr><th>РОП</th><th>Город</th><th>План</th><th>Факт</th><th>Выполнение</th><th>Осталось</th></tr></thead><tbody>';
+    teamRanking.slice().sort(function (a, b) { return b.revPct - a.revPct; }).forEach(function (t) {
+      html += '<tr><td class="rowname">' + esc(t.name) + '</td><td>' + esc(t.city) + '</td><td>' + esc(fmtRub(t.revPlan)) + '</td>' +
+        '<td class="gold">' + esc(fmtRub(t.revenue)) + '</td><td>' + barHtml(t.revPct) + '<small>' + Math.round(t.revPct) + '%</small></td>' +
+        '<td>' + esc(fmtRub(Math.max(0, t.revPlan - t.revenue))) + '</td></tr>';
+    });
+    html += '<tr class="total"><td>Итого</td><td></td><td>' + esc(fmtRub(totRevPlan)) + '</td><td class="gold">' + esc(fmtRub(totRev)) + '</td><td>' + barHtml(pctOf(totRev, totRevPlan)) + '<small>' + Math.round(pctOf(totRev, totRevPlan)) + '%</small></td><td>' + esc(fmtRub(Math.max(0, totRevPlan - totRev))) + '</td></tr>';
+    html += '</tbody></table></div>';
+
+    // --- Таблица 2: план и факт баллов ---
+    html += '<h2 class="section-title">2. План и факт баллов</h2>';
+    html += '<div class="table-scroll"><table class="tbl"><thead><tr><th>РОП</th><th>Город</th><th>Агентов</th><th>План</th><th>Факт</th><th>Выполнение</th><th>Бонус РОПа</th></tr></thead><tbody>';
+    teamRanking.slice().sort(function (a, b) { return b.ptsPct - a.ptsPct; }).forEach(function (t) {
+      html += '<tr><td class="rowname">' + esc(t.name) + '</td><td>' + esc(t.city) + '</td><td>' + t.agentCount + '</td><td>' + esc(fmtPts(t.base)) + '</td>' +
+        '<td class="good">' + esc(fmtPts(t.totalPts)) + '</td><td>' + barHtml(t.ptsPct) + '<small>' + Math.round(t.ptsPct) + '%</small></td>' +
+        '<td class="gold">' + esc(t.tierLabel) + ' · ' + esc(fmtRub(t.bonus)) + '</td></tr>';
+    });
+    html += '<tr class="total"><td>Итого</td><td></td><td>' + sum(teamStats, function (t) { return t.agentCount; }) + '</td><td>' + esc(fmtPts(totPtsPlan)) + '</td><td class="good">' + esc(fmtPts(totPts)) + '</td><td>' + barHtml(pctOf(totPts, totPtsPlan)) + '<small>' + Math.round(pctOf(totPts, totPtsPlan)) + '%</small></td><td></td></tr>';
+    html += '</tbody></table></div>';
+
+    // --- Таблица 3: рейтинг по командам ---
+    html += '<h2 class="section-title">3. Рейтинг по командам (РОПов)</h2>';
     html += '<div class="table-scroll"><table class="tbl"><thead><tr>' +
-      '<th>#</th><th>РОП</th><th>Город</th><th>Баллы</th>' +
+      '<th>#</th><th>РОП</th><th>Город</th><th>Баллы</th><th>% плана баллов</th><th>Валовка</th><th>% плана вала</th>' +
       ACTIONS.map(function (a) { return '<th>' + esc(a.short) + '</th>'; }).join("") +
-      '<th>Сделок</th><th>Валовая выручка</th></tr></thead><tbody>';
+      '<th>Сделок</th></tr></thead><tbody>';
     teamRanking.forEach(function (t, i) {
       html += '<tr><td class="rank">' + (i + 1) + '</td><td class="rowname">' + esc(t.name) + '</td><td>' + esc(t.city) + '</td>' +
-        '<td class="good">' + esc(fmtPts(t.totalPts)) + '</td>' +
+        '<td class="good">' + esc(fmtPts(t.totalPts)) + '</td><td>' + Math.round(t.ptsPct) + '%</td>' +
+        '<td class="gold">' + esc(fmtRub(t.revenue)) + '</td><td>' + Math.round(t.revPct) + '%</td>' +
         ACTIONS.map(function (a) { return '<td>' + t.catCounts[a.key] + '</td>'; }).join("") +
-        '<td>' + t.deals + '</td><td class="gold">' + esc(fmtRub(t.revenue)) + '</td></tr>';
+        '<td>' + t.deals + '</td></tr>';
     });
     html += '</tbody></table></div>';
 
-    html += '<h2 class="section-title">Команды РОПов</h2>';
-    CITIES.forEach(function (city) {
-      var cityTeams = teamStats.filter(function (t) { return t.city === city; });
+    // --- круглишки: баллы и валовка ---
+    html += '<h2 class="section-title">Выполнение плана по командам</h2>';
+    CITIES.forEach(function (c) {
+      var cityTeams = teamStats.filter(function (t) { return t.city === c; });
       if (!cityTeams.length) return;
-      html += '<p class="muted on-dark" style="margin:10px 0 8px 0;font-weight:600;color:#fff;">' + esc(city) + '</p>';
+      html += '<p class="muted on-dark" style="margin:10px 0 8px 0;font-weight:600;color:#fff;">' + esc(c) + '</p>';
       html += '<div class="seal-grid">';
       cityTeams.forEach(function (t) {
-        html += '<div class="seal-card">' + sealSvg(t.progress, t.tierLabel, t.totalPts) +
+        html += '<div class="seal-card"><div><div class="seal-pair">' +
+          sealSvg(t.progress, t.tierLabel, t.totalPts, 112) +
+          sealSvg(Math.min(1, t.revPct / 100), "", 0, 112, { num: Math.round(t.revPct) + "%", unit: "валовка" }) +
+          '</div></div>' +
           '<div class="seal-meta"><h3>' + esc(t.name) + '</h3><p class="muted">' + t.agentCount + ' агентов</p>' +
-          '<div class="thresh-row">' +
-            '<span class="' + (t.totalPts >= t.th05 ? "hit" : "") + '">0,5% ≥ ' + esc(fmtPts(t.th05)) + '</span>' +
-            '<span class="' + (t.totalPts >= t.th1 ? "hit" : "") + '">1% ≥ ' + esc(fmtPts(t.th1)) + '</span>' +
-            '<span class="' + (t.totalPts >= t.th2 ? "hit" : "") + '">2% ≥ ' + esc(fmtPts(t.th2)) + '</span>' +
-          '</div>' +
-          '<div class="bonus-row"><span>Сделок: <b>' + t.deals + '</b></span><span>Выручка: <b>' + esc(fmtRub(t.revenue)) + '</b></span></div>' +
-          '<div class="bonus-final">Бонус РОПа: <b>' + esc(fmtRub(t.bonus)) + '</b></div>' +
+          '<div class="bonus-row"><span>Баллы: <b>' + esc(fmtPts(t.totalPts)) + ' / ' + esc(fmtPts(t.base)) + '</b></span></div>' +
+          '<div class="bonus-row"><span>Вал: <b>' + esc(fmtRub(t.revenue)) + '</b></span></div>' +
+          '<div class="bonus-row"><span>План вала: <b>' + esc(fmtRub(t.revPlan)) + '</b></span></div>' +
+          '<div class="bonus-final">Бонус РОПа: <b>' + esc(fmtRub(t.bonus)) + '</b> (' + esc(t.tierLabel) + ')</div>' +
           (t.below > 0 ? '<div class="warn-pill">' + t.below + ' агенто-недель без нормы</div>' : '') +
           '</div></div>';
       });
       html += '</div>';
     });
 
+    // --- рейтинг агентов ---
+    var step = Number(settings.ratingRevStep) > 0 ? Number(settings.ratingRevStep) : 50000;
+    var stepPts = settings.ratingRevPts != null && settings.ratingRevPts !== "" ? Number(settings.ratingRevPts) : 3;
     html += '<h2 class="section-title">Общий рейтинг агентов</h2>';
+    html += '<p class="muted on-dark small" style="margin-top:-6px;">Рейтинг = баллы + ' + esc(stepPts) + ' б. за каждые ' + esc(fmtRub(step)) + ' валовки. Места выстроены по этому итогу.</p>';
     html += '<div class="table-scroll"><table class="tbl"><thead><tr>' +
-      '<th>#</th><th>Агент</th><th>РОП</th><th>Город</th><th>Баллы</th><th>Сделок</th><th>Валовая выручка</th></tr></thead><tbody>';
+      '<th>#</th><th>Агент</th><th>РОП</th><th>Город</th><th>Баллы</th><th>Валовка</th><th>+ за валовку</th><th>Рейтинг</th><th>Сделок</th></tr></thead><tbody>';
     agentStats.forEach(function (a, i) {
       html += '<tr><td class="rank">' + (i + 1) + '</td><td class="rowname">' + esc(a.name) + '</td><td>' + esc(a.ropName) + '</td><td>' + esc(a.city) + '</td>' +
         '<td class="' + (a.totalPts > 0 ? "good" : "") + '">' + esc(fmtPts(a.totalPts)) + '</td>' +
-        '<td>' + a.deals + '</td><td class="gold">' + esc(fmtRub(a.revenue)) + '</td></tr>';
+        '<td class="gold">' + esc(fmtRub(a.revenue)) + '</td><td>+' + esc(fmtPts(a.revBonus)) + '</td>' +
+        '<td class="rank">' + esc(fmtPts(a.rating)) + '</td><td>' + a.deals + '</td></tr>';
     });
     html += '</tbody></table></div>';
 
     html += '<h2 class="section-title">Агенты ниже недельной нормы</h2>';
+    html += '<p class="muted on-dark small" style="margin-top:-6px;">Считаются только завершённые недели: баллы суммируются за все дни недели (1–7, 8–14, 15–21, 22–конец месяца).</p>';
     if (belowNormList.length === 0) {
-      html += '<p class="muted on-dark empty">Пока все залогированные недели в норме — так держать.</p>';
+      html += '<p class="muted on-dark empty">Пока все завершённые недели в норме — так держать.</p>';
     } else {
       html += '<div class="table-scroll"><table class="tbl"><thead><tr><th>Неделя</th><th>Агент</th><th>РОП</th><th>Баллы</th></tr></thead><tbody>';
       belowNormList.forEach(function (e) {
@@ -742,37 +915,86 @@ select, input[type=text], input[type=number], input[type=password] {
   /* ============================================================
      РЕНДЕР: ВВОД БАЛЛОВ
   ============================================================ */
-  var draft = { week: 1, ropId: null, agentId: null, counts: {}, dealSum: 0 };
+  var draft = { day: null, ropId: null, agentId: null, counts: {}, dealSum: 0, key: "" };
+  var ropLoginUi = { ropId: null, msg: "" };
+
+  function defaultDay() {
+    var now = new Date();
+    var cur = now.getFullYear() + "-" + pad2(now.getMonth() + 1);
+    if (AppState.currentMonth === cur) return now.getDate();
+    return 1;
+  }
+  function entryScope() {
+    if (AppState.isAdmin) return { mode: "admin" };
+    if (AppState.rop && teamById(AppState.rop.id)) return { mode: "rop", ropId: AppState.rop.id };
+    return { mode: "none" };
+  }
   function ensureDraftDefaults() {
-    if (!draft.ropId && AppState.teams.length) draft.ropId = AppState.teams[0].id;
+    var sc = entryScope();
+    if (sc.mode === "rop") draft.ropId = sc.ropId;
+    if (!draft.ropId || !teamById(draft.ropId)) draft.ropId = AppState.teams.length ? AppState.teams[0].id : null;
     var teamAgents = AppState.agents.filter(function (a) { return a.ropId === draft.ropId; });
-    if (!teamAgents.some(function (a) { return a.id === draft.agentId; })) {
-      draft.agentId = teamAgents[0] ? teamAgents[0].id : null;
+    if (!teamAgents.some(function (a) { return a.id === draft.agentId; })) draft.agentId = teamAgents[0] ? teamAgents[0].id : null;
+    var dim = daysInMonth(AppState.currentMonth);
+    if (!draft.day || draft.day > dim) draft.day = Math.min(defaultDay(), dim);
+    var key = AppState.currentMonth + "|" + draft.agentId + "|" + draft.day;
+    if (draft.key !== key) {
+      draft.key = key;
+      var ex = (AppState.monthEntries || []).find(function (e) { return e.agentId === draft.agentId && e.day === draft.day; });
+      draft.counts = {};
+      ACTIONS.forEach(function (a) { draft.counts[a.key] = ex ? (ex.counts[a.key] || 0) : 0; });
+      draft.dealSum = ex ? (ex.dealSum || 0) : 0;
     }
-    ACTIONS.forEach(function (a) { if (draft.counts[a.key] == null) draft.counts[a.key] = 0; });
+  }
+  function canEditEntry(e) {
+    var sc = entryScope();
+    return sc.mode === "admin" || (sc.mode === "rop" && e.ropId === sc.ropId);
   }
 
   function renderEntry() {
+    var sc = entryScope();
+    if (sc.mode === "none") {
+      if (!ropLoginUi.ropId && AppState.teams.length) ropLoginUi.ropId = AppState.teams[0].id;
+      var has = AppState.ropPinIds.indexOf(ropLoginUi.ropId) >= 0;
+      return '<div class="card" style="max-width:520px;"><h2 class="section-title" style="margin-top:0;">Ввод показателей — вход для РОПа</h2>' +
+        '<p class="muted">Показатели по дням вносит РОП своей команды (по личному пин-коду) или администратор. Агенты только просматривают свои результаты в «Мой кабинет».</p>' +
+        '<div class="form-row"><label>РОП<select id="rl-rop">' + CITIES.map(function (city) {
+          var opts = AppState.teams.filter(function (t) { return t.city === city; }).map(function (t) {
+            return '<option value="' + t.id + '"' + (t.id === ropLoginUi.ropId ? " selected" : "") + '>' + esc(t.name) + '</option>';
+          }).join("");
+          return opts ? '<optgroup label="' + esc(city) + '">' + opts + '</optgroup>' : "";
+        }).join("") + '</select></label>' +
+        '<label>Пин-код<input type="password" id="rl-pin" placeholder="••••" autocomplete="off"/></label></div>' +
+        '<button class="btn-primary" id="rl-btn">Войти</button>' +
+        (ropLoginUi.msg ? '<p class="muted small" style="color:#B8492F;">' + esc(ropLoginUi.msg) + '</p>' : '') +
+        (!has ? '<p class="muted small">Для этого РОПа пин-код ещё не выдан — его выдаёт администратор (вкладка «Экспорт»).</p>' : '') +
+        '</div>';
+    }
     ensureDraftDefaults();
     var settings = AppState.monthSettings || defaultSettings();
     var teamAgents = AppState.agents.filter(function (a) { return a.ropId === draft.ropId; });
-    var pts = entryPoints(draft.counts, settings.points, draft.week, settings.weekBoosts);
-    var boostedKeys = settings.weekBoosts[draft.week] || [];
+    var week = weekOfDay(draft.day);
+    var pts = entryPoints(draft.counts, settings.points, week, settings.weekBoosts);
+    var boostedKeys = settings.weekBoosts[week] || [];
+    // накопленные баллы агента за эту неделю (без текущего дня + текущий ввод)
+    var weekSoFar = (AppState.monthEntries || []).filter(function (e) { return e.agentId === draft.agentId && e.week === week && e.day !== draft.day; })
+      .reduce(function (s, e) { return s + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts); }, 0) + pts;
+    var dateVal = AppState.currentMonth + "-" + pad2(draft.day);
+    var dim = daysInMonth(AppState.currentMonth);
 
-    var html = '<p class="muted on-dark" style="margin-top:-8px;">Записи за: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b> — сохраняются сразу для всех.</p>';
+    var html = '<p class="muted on-dark" style="margin-top:-8px;">Записи за: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b> — вносятся по дням и сразу видны всем. ' +
+      (sc.mode === "rop" ? 'Вы вошли как РОП <b style="color:#fff;">' + esc((teamById(sc.ropId) || {}).name || "") + '</b>: можно вносить только свою команду. <a href="#" id="rl-logout" style="color:var(--gold-light,#D4B483);">Выйти</a>' : 'Режим администратора.') + '</p>';
     html += '<div class="entry">';
 
-    html += '<div class="card"><h2 class="section-title">Добавить запись</h2>';
+    html += '<div class="card"><h2 class="section-title">Показатели за день</h2>';
     html += '<div class="form-row">' +
-      '<label>Неделя<select id="f-week">' + WEEKS.map(function (w) {
-        return '<option value="' + w + '"' + (w === draft.week ? " selected" : "") + '>Неделя ' + w + '</option>';
-      }).join("") + '</select></label>' +
-      '<label>РОП<select id="f-rop">' + CITIES.map(function (city) {
+      '<label>Дата<input type="date" id="f-date" value="' + dateVal + '" min="' + AppState.currentMonth + '-01" max="' + AppState.currentMonth + '-' + pad2(dim) + '"/></label>' +
+      (sc.mode === "admin" ? '<label>РОП<select id="f-rop">' + CITIES.map(function (city) {
         var opts = AppState.teams.filter(function (t) { return t.city === city; }).map(function (t) {
           return '<option value="' + t.id + '"' + (t.id === draft.ropId ? " selected" : "") + '>' + esc(t.name) + '</option>';
         }).join("");
         return opts ? '<optgroup label="' + esc(city) + '">' + opts + '</optgroup>' : "";
-      }).join("") + '</select></label>' +
+      }).join("") + '</select></label>' : '') +
       '<label>Агент<select id="f-agent">' + teamAgents.map(function (a) {
         return '<option value="' + a.id + '"' + (a.id === draft.agentId ? " selected" : "") + '>' + esc(a.name) + '</option>';
       }).join("") + '</select></label>' +
@@ -787,43 +1009,45 @@ select, input[type=text], input[type=number], input[type=password] {
         '<span>' + (draft.counts[a.key] || 0) + '</span><button data-bump="' + a.key + '" data-delta="1">+</button></div></div>';
     });
     html += '</div>';
-    html += '<p class="muted small" style="margin-top:-4px;margin-bottom:14px;">Персиковым выделены действия с двойными баллами на неделе ' + draft.week + ' (настраивается на вкладке «Настройки»).</p>';
+    html += '<p class="muted small" style="margin-top:-4px;margin-bottom:14px;">Цифры — итого за выбранный день (сохранение заменяет прежнюю запись этого дня). Персиковым выделены действия с двойными баллами на неделе ' + week + '.</p>';
 
-    html += '<div class="form-row"><label>Сумма сделок за неделю, ₽ (вносится вручную по факту)' +
+    html += '<div class="form-row"><label>Сумма сделок за день, ₽ (вносится вручную по факту)' +
       '<input type="number" step="1000" id="f-dealsum" value="' + esc(draft.dealSum || 0) + '"/></label></div>';
 
-    html += '<div class="entry-footer"><span>Итого за запись: <b>' + esc(fmtPts(pts)) + ' балла</b> ' +
-      (pts < settings.weeklyMin ? '<i class="bad">ниже нормы</i>' : '<i class="good">норма выполнена</i>') + '</span>' +
-      '<button class="btn-primary" id="save-entry"' + (draft.agentId ? "" : " disabled") + '>Сохранить запись</button></div>';
+    html += '<div class="entry-footer"><span>За день: <b>' + esc(fmtPts(pts)) + ' б.</b> · неделя ' + week + ': <b>' + esc(fmtPts(weekSoFar)) + ' / ' + esc(settings.weeklyMin) + '</b> ' +
+      (weekSoFar < settings.weeklyMin ? '<i class="bad">до нормы ' + esc(fmtPts(settings.weeklyMin - weekSoFar)) + '</i>' : '<i class="good">норма недели выполнена</i>') + '</span>' +
+      '<button class="btn-primary" id="save-entry"' + (draft.agentId ? "" : " disabled") + '>Сохранить день</button></div>';
     html += '</div>';
 
     var visibleEntries = (AppState.monthEntries || []).filter(function (e) {
       return UI.filterWeek === "all" || e.week === Number(UI.filterWeek);
     }).slice().sort(function (a, b) {
-      if (a.week !== b.week) return a.week - b.week;
+      if (a.day !== b.day) return a.day - b.day;
       var an = (agentById(a.agentId) || {}).name || "";
       var bn = (agentById(b.agentId) || {}).name || "";
       return an.localeCompare(bn);
     });
 
-    html += '<div class="card"><div class="log-head"><h2 class="section-title" style="margin:0;">Журнал недели</h2>' +
-      '<select id="filter-week"><option value="all"' + (UI.filterWeek === "all" ? " selected" : "") + '>Все недели</option>' +
+    html += '<div class="card"><div class="log-head"><h2 class="section-title" style="margin:0;">Журнал по дням</h2>' +
+      '<select id="filter-week"><option value="all"' + (UI.filterWeek === "all" ? " selected" : "") + '>Весь месяц</option>' +
       WEEKS.map(function (w) { return '<option value="' + w + '"' + (String(w) === String(UI.filterWeek) ? " selected" : "") + '>Неделя ' + w + '</option>'; }).join("") +
       '</select></div>';
 
     if (visibleEntries.length === 0) {
-      html += '<p class="muted empty">Записей пока нет — заполните форму слева.</p>';
+      html += '<p class="muted empty">Записей пока нет — заполните форму.</p>';
     } else {
-      html += '<table class="tbl"><thead><tr><th>Нед.</th><th>Агент</th><th>Баллы</th><th>Сумма сделок</th><th></th></tr></thead><tbody>';
+      html += '<div class="table-scroll"><table class="tbl"><thead><tr><th>Дата</th><th>Агент</th><th>Команда</th><th>Баллы</th><th>Сумма сделок</th><th></th></tr></thead><tbody>';
       visibleEntries.forEach(function (e) {
         var p = entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
         var a = agentById(e.agentId);
-        html += '<tr><td>' + e.week + '</td><td>' + esc(a ? a.name : "—") + '</td>' +
-          '<td class="' + (p < settings.weeklyMin ? "bad" : "good") + '">' + esc(fmtPts(p)) + '</td>' +
-          '<td class="gold">' + esc(fmtRub(e.dealSum || 0)) + '</td>' +
-          '<td><button class="btn-ghost" data-del-entry-agent="' + e.agentId + '" data-del-entry-week="' + e.week + '">Удалить</button></td></tr>';
+        var t = teamById(entryTeamId(e));
+        html += '<tr><td>' + esc(dayLabel(e.day)) + '</td><td>' + esc(a ? a.name : "—") + '</td><td>' + esc(t ? t.name : "—") + '</td>' +
+          '<td class="good">' + esc(fmtPts(p)) + '</td>' +
+          '<td class="gold">' + esc(fmtRub(e.dealSum || 0)) + '</td><td>' +
+          (canEditEntry(e) ? '<button class="btn-ghost" data-edit-entry-agent="' + e.agentId + '" data-edit-entry-day="' + e.day + '">Править</button> ' +
+            '<button class="btn-ghost" data-del-entry-agent="' + e.agentId + '" data-del-entry-day="' + e.day + '">Удалить</button>' : '') + '</td></tr>';
       });
-      html += '</tbody></table>';
+      html += '</tbody></table></div>';
     }
     html += '</div></div>';
     return html;
@@ -894,13 +1118,161 @@ select, input[type=text], input[type=number], input[type=password] {
     return html;
   }
 
+
+  /* ============================================================
+     РЕНДЕР: МОЙ КАБИНЕТ АГЕНТА (личный пин)
+  ============================================================ */
+  var cabLogin = { ropId: null, agentId: null, msg: "" };
+  var cabPinMsg = "";
+
+  function renderCabinetLogin() {
+    if (!cabLogin.ropId && AppState.teams.length) cabLogin.ropId = AppState.teams[0].id;
+    var teamAgents = AppState.agents.filter(function (a) { return a.ropId === cabLogin.ropId; });
+    if (!teamAgents.some(function (a) { return a.id === cabLogin.agentId; })) cabLogin.agentId = teamAgents[0] ? teamAgents[0].id : null;
+    var hasPin = AppState.agentPinIds.indexOf(cabLogin.agentId) >= 0;
+    var html = '<div class="card" style="max-width:520px;"><h2 class="section-title" style="margin-top:0;">Вход в личный кабинет</h2>' +
+      '<p class="muted">Выберите себя в списке и введите личный пин-код. В кабинете вы видите свои показатели, рейтинг и комиссию. Показатели вносит ваш РОП.</p>' +
+      '<div class="form-row">' +
+      '<label>РОП<select id="cab-rop">' + CITIES.map(function (city) {
+        var opts = AppState.teams.filter(function (t) { return t.city === city; }).map(function (t) {
+          return '<option value="' + t.id + '"' + (t.id === cabLogin.ropId ? " selected" : "") + '>' + esc(t.name) + '</option>';
+        }).join("");
+        return opts ? '<optgroup label="' + esc(city) + '">' + opts + '</optgroup>' : "";
+      }).join("") + '</select></label>' +
+      '<label>Агент<select id="cab-agent">' + teamAgents.map(function (a) {
+        return '<option value="' + a.id + '"' + (a.id === cabLogin.agentId ? " selected" : "") + '>' + esc(a.name) + '</option>';
+      }).join("") + '</select></label>' +
+      '<label>Пин-код<input type="password" id="cab-pin" placeholder="••••" inputmode="numeric" autocomplete="off"/></label>' +
+      '</div>' +
+      '<button class="btn-primary" id="cab-login-btn"' + (cabLogin.agentId ? "" : " disabled") + '>Войти</button>' +
+      (cabLogin.msg ? '<p class="muted small" style="color:#B8492F;">' + esc(cabLogin.msg) + '</p>' : '') +
+      (!hasPin && cabLogin.agentId ? '<p class="muted small">Для этого агента пин-код ещё не выдан — попросите РОПа или администратора.</p>' : '') +
+      '</div>';
+    return html;
+  }
+
+  function renderCabinet() {
+    if (!AppState.me || !agentById(AppState.me.id)) return renderCabinetLogin();
+    var agent = agentById(AppState.me.id);
+    var team = teamById(agent.ropId);
+    var settings = AppState.monthSettings || defaultSettings();
+    var pointsPlan = settings.weeklyMin * settings.weeksPerMonth;
+    var prevKey = monthKeyAddMonths(AppState.currentMonth, -1);
+    if (commissionsLoadedKey !== prevKey) {
+      commissionsLoadedKey = prevKey;
+      commissionsPrevData = undefined;
+      loadPrevMonthData(prevKey).then(function (data) {
+        commissionsPrevData = data;
+        if (UI.tab === "cabinet" || UI.tab === "commissions") render();
+      });
+    }
+    var myEntries = (AppState.monthEntries || []).filter(function (e) { return e.agentId === agent.id; });
+    var grade = gradeFromData(agent, { settings: settings, entries: AppState.monthEntries || [] });
+    var ranking = computeAgentStats();
+    var place = 0, me = null;
+    ranking.forEach(function (r, i) { if (r.id === agent.id) { place = i + 1; me = r; } });
+
+    var html = '<div class="dash-top">' +
+      '<div class="kpi"><span class="kpi-label">Агент</span><span class="kpi-value" style="font-size:18px;">' + esc(agent.name) + '</span></div>' +
+      '<div class="kpi"><span class="kpi-label">РОП</span><span class="kpi-value" style="font-size:18px;">' + esc(team ? team.name : "—") + '</span></div>';
+    if (grade) {
+      html += '<div class="kpi"><span class="kpi-label">Баллы за месяц</span><span class="kpi-value">' + esc(fmtPts(grade.pts)) + ' / ' + esc(pointsPlan) + '</span></div>' +
+        '<div class="kpi"><span class="kpi-label">Валовка</span><span class="kpi-value gold">' + esc(fmtRub(grade.revenue)) + '</span></div>' +
+        '<div class="kpi"><span class="kpi-label">Выполнение плана</span><span class="kpi-value">' + esc(Math.round(grade.pct)) + '%</span></div>' +
+        '<div class="kpi"><span class="kpi-label">Уровень</span><span class="kpi-value gold">' + esc(grade.tier) + '</span></div>';
+      if (commissionsPrevData !== undefined) {
+        var rate = activeCommissionRate(agent, commissionsPrevData);
+        html += '<div class="kpi"><span class="kpi-label">Ставка сейчас</span><span class="kpi-value gold">' + esc(rate.rate) + '%</span></div>';
+      }
+    }
+    if (me) html += '<div class="kpi"><span class="kpi-label">Место в рейтинге</span><span class="kpi-value">' + place + ' из ' + ranking.length + '</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Рейтинг-баллы</span><span class="kpi-value">' + esc(fmtPts(me.rating)) + '</span></div>';
+    html += '</div>';
+    if (commissionsPrevData !== undefined && grade) {
+      var r2 = activeCommissionRate(agent, commissionsPrevData);
+      if (r2.note) html += '<p class="muted on-dark small">' + esc(r2.note) + '</p>';
+    }
+    html += '<p class="muted on-dark small">План: ' + esc(pointsPlan) + ' баллов в месяц (' + esc(settings.weeklyMin) + ' в неделю) либо вал от ' + esc(fmtRub(settings.revenuePlan)) + ' — засчитывается то, что выгоднее. Месяц: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b>. Показатели вносит ваш РОП.</p>';
+
+    // по неделям
+    html += '<div class="card"><h2 class="section-title" style="margin-top:0;">Мои недели</h2>';
+    html += '<div class="table-scroll"><table class="tbl"><thead><tr><th>Неделя</th><th>Баллы</th><th>Норма</th><th>Валовка</th></tr></thead><tbody>';
+    WEEKS.forEach(function (w) {
+      var we = myEntries.filter(function (e) { return e.week === w; });
+      var p = we.reduce(function (s2, e) { return s2 + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts); }, 0);
+      var rv = we.reduce(function (s2, e) { return s2 + (e.dealSum || 0); }, 0);
+      var done = weekCompleted(AppState.currentMonth, w);
+      html += '<tr><td>' + w + '</td><td class="' + (p >= settings.weeklyMin ? "good" : (done ? "bad" : "")) + '">' + esc(fmtPts(p)) + '</td><td>' + esc(settings.weeklyMin) + '</td><td class="gold">' + esc(fmtRub(rv)) + '</td></tr>';
+    });
+    html += '</tbody></table></div></div>';
+
+    // по дням
+    html += '<div class="card" style="margin-top:16px;"><h2 class="section-title" style="margin-top:0;">Мои дни</h2>';
+    if (!myEntries.length) html += '<p class="muted empty">Записей за этот месяц пока нет.</p>';
+    else {
+      html += '<div class="table-scroll"><table class="tbl"><thead><tr><th>Дата</th><th>Команда</th><th>Действия</th><th>Баллы</th><th>Сумма сделок</th></tr></thead><tbody>';
+      myEntries.slice().sort(function (a, b) { return a.day - b.day; }).forEach(function (e) {
+        var p = entryPoints(e.counts, settings.points, e.week, settings.weekBoosts);
+        var t = teamById(entryTeamId(e));
+        var acts = ACTIONS.filter(function (a) { return e.counts[a.key]; }).map(function (a) { return a.short + " ×" + e.counts[a.key]; }).join(", ");
+        html += '<tr><td>' + esc(dayLabel(e.day)) + '</td><td>' + esc(t ? t.name : "—") + '</td><td style="white-space:normal;">' + esc(acts || "—") + '</td>' +
+          '<td class="good">' + esc(fmtPts(p)) + '</td><td class="gold">' + esc(fmtRub(e.dealSum || 0)) + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+
+    html += '<div class="card" style="margin-top:16px;max-width:520px;"><h2 class="section-title" style="margin-top:0;">Мой пин-код</h2>' +
+      '<div class="form-row"><label>Текущий пин<input type="password" id="cab-pin-old"/></label>' +
+      '<label>Новый пин (от 4 символов)<input type="password" id="cab-pin-new"/></label></div>' +
+      '<button class="btn-ghost" id="cab-pin-change">Сменить пин</button> ' +
+      '<button class="btn-ghost" id="cab-logout">Выйти</button>' +
+      (cabPinMsg ? '<p class="muted small">' + esc(cabPinMsg) + '</p>' : '') + '</div>';
+    return html;
+  }
+
+  function bindCabinetEvents() {
+    var rop = root.querySelector("#cab-rop");
+    if (rop) rop.addEventListener("change", function () { cabLogin.ropId = rop.value; cabLogin.agentId = null; cabLogin.msg = ""; render(); });
+    var ag = root.querySelector("#cab-agent");
+    if (ag) ag.addEventListener("change", function () { cabLogin.agentId = ag.value; cabLogin.msg = ""; render(); });
+    var loginBtn = root.querySelector("#cab-login-btn");
+    if (loginBtn) {
+      var doLogin = async function () {
+        var pin = root.querySelector("#cab-pin").value;
+        if (!pin || !cabLogin.agentId) return;
+        var ok = await agentLogin(cabLogin.agentId, pin);
+        if (ok) {
+          AppState.me = { id: cabLogin.agentId, pin: pin };
+          safeSession.set("rop-agent", JSON.stringify(AppState.me));
+          cabLogin.msg = "";
+        } else cabLogin.msg = "Неверный пин-код (или пин ещё не выдан).";
+        render();
+      };
+      loginBtn.addEventListener("click", doLogin);
+      var pinInp = root.querySelector("#cab-pin");
+      if (pinInp) pinInp.addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+    }
+    if (!AppState.me) return;
+    var chg = root.querySelector("#cab-pin-change");
+    if (chg) chg.addEventListener("click", async function () {
+      var o = root.querySelector("#cab-pin-old").value, n = root.querySelector("#cab-pin-new").value;
+      if (!n || n.length < 4) { cabPinMsg = "Новый пин — минимум 4 символа."; render(); return; }
+      var { data, error } = await supa.rpc("agent_change_pin", { p_agent_id: AppState.me.id, p_old_pin: o, p_new_pin: n });
+      if (!error && data === true) { AppState.me.pin = n; safeSession.set("rop-agent", JSON.stringify(AppState.me)); cabPinMsg = "Пин-код обновлён."; }
+      else cabPinMsg = "Не удалось: неверный текущий пин.";
+      render();
+    });
+    var out = root.querySelector("#cab-logout");
+    if (out) out.addEventListener("click", function () { AppState.me = null; safeSession.del("rop-agent"); cabPinMsg = ""; render(); });
+  }
   /* ============================================================
      РЕНДЕР: КОМАНДА
   ============================================================ */
   var UI2 = { newRopName: "", newRopCity: CITIES[0], newAgentNameByRop: {} };
 
   function renderTeam() {
-    var html = '<p class="muted on-dark" style="margin-top:-8px;">Список РОПов и агентов общий для всех месяцев и виден всем на сайте.</p>';
+    var html = '<p class="muted on-dark" style="margin-top:-8px;">Состав команд (только администратор). При переводе агента в другую команду его прошлые показатели остаются в прежней команде, новые идут в новую; в личном рейтинге агента они суммируются.</p>';
     html += '<div class="card add-rop"><h2 class="section-title" style="margin:0;">Добавить РОПа</h2>' +
       '<div class="inline-add">' +
       '<input type="text" id="new-rop-name" placeholder="Имя РОПа" value="' + esc(UI2.newRopName) + '"/>' +
@@ -919,7 +1291,10 @@ select, input[type=text], input[type=number], input[type=password] {
           '<button class="btn-ghost" data-del-rop="' + t.id + '">Удалить РОПа</button></div>' +
           '<p class="muted">' + teamAgents.length + ' агентов</p><ul class="agent-list">';
         teamAgents.forEach(function (a) {
-          html += '<li><span>' + esc(a.name) + '</span><button class="btn-ghost small" data-del-agent="' + a.id + '">×</button></li>';
+          html += '<li><span>' + esc(a.name) + '</span><span style="display:flex;gap:6px;align-items:center;">' +
+            '<select data-move-agent="' + a.id + '" title="Перевести в другую команду" style="max-width:130px;font-size:11px;"><option value="">перевести…</option>' +
+            AppState.teams.filter(function (x) { return x.id !== t.id; }).map(function (x) { return '<option value="' + x.id + '">' + esc(x.name) + ' (' + esc(x.city) + ')</option>'; }).join("") +
+            '</select><button class="btn-ghost small" data-del-agent="' + a.id + '">×</button></span></li>';
         });
         html += '</ul><div class="inline-add small">' +
           '<input type="text" data-new-agent-input="' + t.id + '" placeholder="Новый агент" value="' + esc(UI2.newAgentNameByRop[t.id] || "") + '"/>' +
@@ -936,25 +1311,38 @@ select, input[type=text], input[type=number], input[type=password] {
   function renderSettings() {
     var s = AppState.monthSettings || defaultSettings();
     var monthlyBase = s.weeklyMin * s.weeksPerMonth;
+    var locked = !AppState.isAdmin;
+    var dis = locked ? " disabled" : "";
     var html = '<p class="muted on-dark" style="margin-top:-8px;">Настройки за: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b> — свои для каждого месяца, видны всем.</p>';
-    html += '<div class="settings">';
+
+    if (locked) {
+      html += '<div class="card" style="margin-bottom:18px;border:1.5px dashed var(--coral);">' +
+        '<h2 class="section-title" style="margin-top:0;">🔒 Настройки редактирует только администратор</h2>' +
+        '<p class="muted">Вы видите текущие значения, но менять их может только администратор. Если это вы — войдите по пин-коду:</p>' +
+        '<div class="form-row"><label>Пин-код<input type="password" id="settings-pin-input"/></label></div>' +
+        '<button class="btn-primary" id="settings-pin-submit">Войти как администратор</button>' +
+        (adminPinMsg ? '<p class="muted small" style="color:#B8492F;">' + esc(adminPinMsg) + '</p>' : '') +
+        '</div>';
+    }
+
+    html += '<div class="settings' + (locked ? " settings-locked" : "") + '">';
 
     html += '<div class="card"><h2 class="section-title">Баллы за действия</h2><div class="settings-grid">';
     ACTIONS.forEach(function (a) {
-      html += '<label class="settings-field">' + esc(a.label) + '<input type="number" step="0.5" data-point-key="' + a.key + '" value="' + esc(s.points[a.key]) + '"/></label>';
+      html += '<label class="settings-field">' + esc(a.label) + '<input type="number" step="0.5" data-point-key="' + a.key + '" value="' + esc(s.points[a.key]) + '"' + dis + '/></label>';
     });
     html += '</div></div>';
 
     html += '<div class="card"><h2 class="section-title">Норма</h2><div class="settings-grid">' +
-      '<label class="settings-field">Мин. баллов в неделю на агента<input type="number" step="0.5" id="weekly-min" value="' + esc(s.weeklyMin) + '"/></label>' +
-      '<label class="settings-field">Недель в месяце<input type="number" id="weeks-per-month" value="' + esc(s.weeksPerMonth) + '"/></label>' +
+      '<label class="settings-field">Мин. баллов в неделю на агента<input type="number" step="0.5" id="weekly-min" value="' + esc(s.weeklyMin) + '"' + dis + '/></label>' +
+      '<label class="settings-field">Недель в месяце<input type="number" id="weeks-per-month" value="' + esc(s.weeksPerMonth) + '"' + dis + '/></label>' +
       '<div class="settings-field readonly">Норма в месяц на агента<span>' + esc(monthlyBase) + ' б.</span></div>' +
       '</div></div>';
 
     html += '<div class="card"><h2 class="section-title">Пороги бонуса РОПа (× от месячной нормы на агента)</h2><div class="settings-grid">' +
-      '<label class="settings-field">0,5% при ×<input type="number" step="0.1" data-tier="t05" value="' + esc(s.tierMult.t05) + '"/></label>' +
-      '<label class="settings-field">1% при ×<input type="number" step="0.1" data-tier="t1" value="' + esc(s.tierMult.t1) + '"/></label>' +
-      '<label class="settings-field">2% при ×<input type="number" step="0.1" data-tier="t2" value="' + esc(s.tierMult.t2) + '"/></label>' +
+      '<label class="settings-field">0,5% при ×<input type="number" step="0.1" data-tier="t05" value="' + esc(s.tierMult.t05) + '"' + dis + '/></label>' +
+      '<label class="settings-field">1% при ×<input type="number" step="0.1" data-tier="t1" value="' + esc(s.tierMult.t1) + '"' + dis + '/></label>' +
+      '<label class="settings-field">2% при ×<input type="number" step="0.1" data-tier="t2" value="' + esc(s.tierMult.t2) + '"' + dis + '/></label>' +
       '</div><p class="muted small">Порог в баллах = кол-во агентов в команде × ' + esc(monthlyBase) + ' × коэффициент.</p></div>';
 
     html += '<div class="card"><h2 class="section-title">Недельные множители ×2</h2>' +
@@ -965,7 +1353,7 @@ select, input[type=text], input[type=number], input[type=password] {
       html += '<div class="boost-row"><span class="boost-week">Неделя ' + w + '</span>';
       ACTIONS.forEach(function (a) {
         var on = (s.weekBoosts[w] || []).indexOf(a.key) >= 0;
-        html += '<button class="boost-cell' + (on ? " on" : "") + '" data-boost-week="' + w + '" data-boost-key="' + a.key + '" title="' + esc(a.label) + '">' + (on ? "×2" : "—") + '</button>';
+        html += '<button class="boost-cell' + (on ? " on" : "") + '" data-boost-week="' + w + '" data-boost-key="' + a.key + '" title="' + esc(a.label) + '"' + dis + '>' + (on ? "×2" : "—") + '</button>';
       });
       html += '</div>';
     });
@@ -973,22 +1361,32 @@ select, input[type=text], input[type=number], input[type=password] {
 
     html += '<div class="card"><h2 class="section-title">Выручка и план агента</h2><div class="settings-grid">' +
       '<div class="settings-field readonly">Валовая выручка<span style="font-size:13px;">вносится вручную в форме ввода баллов</span></div>' +
-      '<label class="settings-field">План агента по валу, ₽/мес (альтернатива баллам)<input type="number" step="10000" id="revenue-plan" value="' + esc(s.revenuePlan) + '"/></label>' +
+      '<label class="settings-field">План агента по валу, ₽/мес (альтернатива баллам)<input type="number" step="10000" id="revenue-plan" value="' + esc(s.revenuePlan) + '"' + dis + '/></label>' +
       '</div><p class="muted small">Бонус РОПа считается от суммы сумм сделок, введённых по факту в «Баллы за неделю». План выполнения для агента (100%) — баллы (норма × недель) ЛИБО вал по этому полю — берётся то, что выгоднее агенту.</p></div>';
+
+    html += '<div class="card"><h2 class="section-title">План по валовке команд и рейтинг агентов</h2><div class="settings-grid">' +
+      '<label class="settings-field">Рейтинг: шаг валовки, ₽<input type="number" step="10000" id="rating-step" value="' + esc(s.ratingRevStep != null ? s.ratingRevStep : 50000) + '"' + dis + '/></label>' +
+      '<label class="settings-field">Рейтинг: баллов за шаг<input type="number" step="0.5" id="rating-pts" value="' + esc(s.ratingRevPts != null ? s.ratingRevPts : 3) + '"' + dis + '/></label></div>' +
+      '<p class="muted small">Рейтинг агента = баллы + (валовка ÷ шаг, целых) × баллов за шаг.</p>' +
+      '<p class="muted small" style="margin-bottom:6px;">План валовки по командам на месяц, ₽ (пусто = план агента × число агентов в команде):</p><div class="settings-grid">' +
+      AppState.teams.map(function (t) {
+        var v = (s.teamRevenuePlans || {})[t.id];
+        return '<label class="settings-field">' + esc(t.name) + ' (' + esc(t.city) + ')<input type="number" step="50000" data-teamplan="' + t.id + '" value="' + (v > 0 ? esc(v) : "") + '" placeholder="' + esc((s.revenuePlan || 0) * (t.count || 0)) + '"' + dis + '/></label>';
+      }).join("") + '</div></div>';
 
     html += '<div class="card"><h2 class="section-title">Комиссия агентов (вкладка «Комиссии»)</h2>' +
       '<div class="settings-grid">' +
-      '<label class="settings-field">Граница A/B, % от плана<input type="number" data-comm="p1" value="' + esc(s.commission.p1) + '"/></label>' +
-      '<label class="settings-field">Граница B/C, % от плана<input type="number" data-comm="p2" value="' + esc(s.commission.p2) + '"/></label>' +
-      '<label class="settings-field">Граница C/D, % от плана<input type="number" data-comm="p3" value="' + esc(s.commission.p3) + '"/></label>' +
+      '<label class="settings-field">Граница A/B, % от плана<input type="number" data-comm="p1" value="' + esc(s.commission.p1) + '"' + dis + '/></label>' +
+      '<label class="settings-field">Граница B/C, % от плана<input type="number" data-comm="p2" value="' + esc(s.commission.p2) + '"' + dis + '/></label>' +
+      '<label class="settings-field">Граница C/D, % от плана<input type="number" data-comm="p3" value="' + esc(s.commission.p3) + '"' + dis + '/></label>' +
       '</div>' +
       '<div class="settings-grid" style="margin-top:12px;">' +
-      '<label class="settings-field">Уровень A: ставка первых N сделок, %<input type="number" data-comm="aRate" value="' + esc(s.commission.aRate) + '"/></label>' +
-      '<label class="settings-field">Уровень A: сделок по сниж. ставке<input type="number" data-comm="aDealsCount" value="' + esc(s.commission.aDealsCount) + '"/></label>' +
-      '<label class="settings-field">Уровень A: далее ставка, %<input type="number" data-comm="aStandard" value="' + esc(s.commission.aStandard) + '"/></label>' +
-      '<label class="settings-field">Уровень B (стандарт), %<input type="number" data-comm="bRate" value="' + esc(s.commission.bRate) + '"/></label>' +
-      '<label class="settings-field">Уровень C, %<input type="number" data-comm="cRate" value="' + esc(s.commission.cRate) + '"/></label>' +
-      '<label class="settings-field">Уровень D (план выполнен), %<input type="number" data-comm="dRate" value="' + esc(s.commission.dRate) + '"/></label>' +
+      '<label class="settings-field">Уровень A: ставка первых N сделок, %<input type="number" data-comm="aRate" value="' + esc(s.commission.aRate) + '"' + dis + '/></label>' +
+      '<label class="settings-field">Уровень A: сделок по сниж. ставке<input type="number" data-comm="aDealsCount" value="' + esc(s.commission.aDealsCount) + '"' + dis + '/></label>' +
+      '<label class="settings-field">Уровень A: далее ставка, %<input type="number" data-comm="aStandard" value="' + esc(s.commission.aStandard) + '"' + dis + '/></label>' +
+      '<label class="settings-field">Уровень B (стандарт), %<input type="number" data-comm="bRate" value="' + esc(s.commission.bRate) + '"' + dis + '/></label>' +
+      '<label class="settings-field">Уровень C, %<input type="number" data-comm="cRate" value="' + esc(s.commission.cRate) + '"' + dis + '/></label>' +
+      '<label class="settings-field">Уровень D (план выполнен), %<input type="number" data-comm="dRate" value="' + esc(s.commission.dRate) + '"' + dis + '/></label>' +
       '</div>' +
       '<p class="muted small">Ставка действует в следующем после расчёта месяце: грейд считается по итогам месяца, ставка применяется к сделкам следующего месяца (для уровня A — только к первым N сделкам, далее — стандартная ставка).</p></div>';
 
@@ -1017,7 +1415,10 @@ select, input[type=text], input[type=number], input[type=password] {
       return '<option value="' + idx + '"' + (idx === Number(nextParts[1]) - 1 ? " selected" : "") + '>' + name + '</option>';
     }).join("");
 
-    var whoHtml = AppState.isAdmin ? '<div class="who-box"><span class="admin-badge">админ</span></div>' : "";
+    var meAgent = AppState.me ? agentById(AppState.me.id) : null;
+    var whoHtml = AppState.isAdmin ? '<div class="who-box"><span class="admin-badge">админ</span></div>'
+      : AppState.rop && teamById(AppState.rop.id) ? '<div class="who-box"><span class="admin-badge">РОП ' + esc(teamById(AppState.rop.id).name) + '</span></div>'
+      : meAgent ? '<div class="who-box"><span class="admin-badge">' + esc(meAgent.name) + '</span></div>' : "";
 
     return '' +
       '<div class="site-header">' +
@@ -1029,21 +1430,32 @@ select, input[type=text], input[type=number], input[type=password] {
           whoHtml +
           '<div class="month-wrap">' +
             '<div style="display:flex;align-items:flex-end;gap:10px;">' +
-              '<div class="month-box"><span>Месяц</span><select id="month-select">' + monthOptions + '</select></div>' +
-              '<button class="add-month-btn" id="add-month-toggle" type="button">+ Месяц</button>' +
+              (AppState.isAdmin
+                ? '<div class="month-box"><span>Месяц</span><select id="month-select">' + monthOptions + '</select></div>' +
+                  '<button class="add-month-btn" id="add-month-toggle" type="button">+ Месяц</button>'
+                : '<div class="month-box"><span>Месяц</span><b style="color:#fff;font-size:15px;text-transform:none;letter-spacing:0;">' + esc(monthLabel(AppState.currentMonth)) + '</b></div>') +
             '</div>' +
-            '<div class="add-month-form' + (UI.addMonthOpen ? " open" : "") + '" id="add-month-form">' +
+            (!AppState.isAdmin ? '' : '<div class="add-month-form' + (UI.addMonthOpen ? " open" : "") + '" id="add-month-form">' +
               '<label>Месяц<select id="new-month-name">' + monthNameOptions + '</select></label>' +
               '<label>Год<select id="new-month-year">' + yearOptions + '</select></label>' +
               '<button class="btn-primary" id="create-month-btn" type="button">Создать</button>' +
-            '</div>' +
+            '</div>') +
           '</div>' +
         '</div>' +
       '</div>';
   }
 
+  function visibleTabs() {
+    var staff = AppState.isAdmin || (AppState.rop && teamById(AppState.rop.id));
+    var t = [["dash", "Дашборд"], ["cabinet", "Мой кабинет"], ["entry", "Ввод по дням"]];
+    if (staff) t.push(["commissions", "Комиссии"]);
+    if (AppState.isAdmin) t.push(["team", "Команда"]);
+    t.push(["settings", "Настройки"]);
+    t.push(["admin", "Экспорт"]);
+    return t;
+  }
   function renderTabs() {
-    var tabs = [["dash", "Дашборд"], ["entry", "Баллы за неделю"], ["commissions", "Комиссии"], ["team", "Команда"], ["settings", "Настройки"], ["admin", "Экспорт"]];
+    var tabs = visibleTabs();
     return '<div class="tabs">' +
       '<div class="tabs-left">' + tabs.map(function (t) {
         var active = UI.tab === t[0] ? " active" : "";
@@ -1081,6 +1493,28 @@ select, input[type=text], input[type=number], input[type=password] {
       '<p class="muted small" id="pin-change-status"></p>' +
       '<button class="btn-ghost" id="admin-logout-btn" style="margin-top:10px;">Выйти из режима администратора</button>' +
       '</div>';
+
+    html2 += '<div class="card" style="margin-top:16px;"><h2 class="section-title" style="margin-top:0;">Пин-коды РОПов</h2>' +
+      '<p class="muted">РОП с личным пином вносит показатели по дням только для своей команды и больше ничего менять не может.</p>' +
+      '<div class="form-row"><label>РОП<select id="rpin-rop">' + AppState.teams.map(function (t) {
+        return '<option value="' + t.id + '">' + esc(t.name) + ' (' + esc(t.city) + ')' + (AppState.ropPinIds.indexOf(t.id) >= 0 ? ' ✓' : '') + '</option>';
+      }).join("") + '</select></label>' +
+      '<label>Новый пин<input type="text" id="rpin-new" autocomplete="off"/></label></div>' +
+      '<button class="btn-primary" id="rpin-set">Выдать пин РОПу</button>' +
+      '<p class="muted small" id="rpin-status">Пин выдан: ' + AppState.ropPinIds.length + ' из ' + AppState.teams.length + ' РОПов (отмечены ✓).</p></div>';
+
+    html2 += '<div class="card" style="margin-top:16px;"><h2 class="section-title" style="margin-top:0;">Пин-коды агентов</h2>' +
+      '<p class="muted">Выдайте агенту личный пин (от 4 символов) — с ним он входит в «Мой кабинет» (только просмотр своих показателей и комиссии). Повторная выдача заменяет старый пин. Пины хранятся только в зашифрованном виде и посмотреть их нельзя — только выдать новый.</p>' +
+      '<div class="form-row"><label>Агент<select id="apin-agent">' + CITIES.map(function (city) {
+        var opts = AppState.agents.filter(function (a) { var t = teamById(a.ropId); return t && t.city === city; }).sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (a) {
+          var t = teamById(a.ropId);
+          return '<option value="' + a.id + '">' + esc(a.name) + ' (' + esc(t.name) + ')' + (AppState.agentPinIds.indexOf(a.id) >= 0 ? ' ✓' : '') + '</option>';
+        }).join("");
+        return opts ? '<optgroup label="' + esc(city) + '">' + opts + '</optgroup>' : "";
+      }).join("") + '</select></label>' +
+      '<label>Новый пин<input type="text" id="apin-new" autocomplete="off"/></label></div>' +
+      '<button class="btn-primary" id="apin-set">Выдать пин</button>' +
+      '<p class="muted small" id="apin-status">Пин выдан: ' + AppState.agentPinIds.length + ' из ' + AppState.agents.length + ' агентов (отмечены ✓ в списке).</p></div>';
     return html2;
   }
 
@@ -1115,9 +1549,9 @@ select, input[type=text], input[type=number], input[type=password] {
 
         var entryRows = data.entries.map(function (e) {
           var a = agentById(e.agentId);
-          var team = a ? teamById(a.ropId) : null;
+          var team = teamById(entryTeamId(e));
           var pts = entryPoints(e.counts, data.settings.points, e.week, data.settings.weekBoosts);
-          var row = { Неделя: e.week, Агент: a ? a.name : e.agentId, РОП: team ? team.name : "", Город: team ? team.city : "" };
+          var row = { День: e.day, Неделя: e.week, Агент: a ? a.name : e.agentId, РОП: team ? team.name : "", Город: team ? team.city : "" };
           ACTIONS.forEach(function (act) { row[act.label] = e.counts[act.key] || 0; });
           row["Баллы"] = Math.round(pts * 10) / 10;
           row["Сумма сделок, ₽"] = e.dealSum || 0;
@@ -1128,9 +1562,7 @@ select, input[type=text], input[type=number], input[type=password] {
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
         AppState.teams.forEach(function (t) {
-          var teamAgentIds = {};
-          AppState.agents.forEach(function (a) { if (a.ropId === t.id) teamAgentIds[a.id] = true; });
-          var teamEntries = data.entries.filter(function (e) { return teamAgentIds[e.agentId]; });
+          var teamEntries = data.entries.filter(function (e) { return entryTeamId(e) === t.id; });
           var totalPts = teamEntries.reduce(function (s, e) { return s + entryPoints(e.counts, data.settings.points, e.week, data.settings.weekBoosts); }, 0);
           var deals = teamEntries.reduce(function (s, e) { return s + (e.counts.deal || 0); }, 0);
           var revenue = teamEntries.reduce(function (s, e) { return s + (e.dealSum || 0); }, 0);
@@ -1168,12 +1600,24 @@ select, input[type=text], input[type=number], input[type=password] {
         '<div style="max-width:480px;text-align:center;">Сайт ещё не настроен: впишите Project URL и anon key вашего проекта Supabase в начало файла index.html (переменные SUPABASE_URL и SUPABASE_ANON_KEY) и выполните supabase_schema.sql в Supabase SQL Editor.</div></div>';
       return;
     }
+    if (AppState.loadError) {
+      root.innerHTML = '<div class="loading-screen"><div style="font-size:32px;">⚠️</div>' +
+        '<div style="max-width:560px;text-align:center;line-height:1.5;">' + esc(AppState.loadError) + '</div></div>';
+      return;
+    }
     if (!AppState.ready) {
       root.innerHTML = '<div class="loading-screen"><div class="spinner"></div><div>Загрузка данных…</div></div>';
       return;
     }
+    if (!AppState.currentMonth) {
+      root.innerHTML = '<div class="loading-screen"><div style="font-size:32px;">📭</div>' +
+        '<div style="max-width:560px;text-align:center;line-height:1.5;">В базе пока нет ни одного месяца. Выполните supabase_schema.sql в Supabase SQL Editor (он создаёт август 2026 и все команды).</div></div>';
+      return;
+    }
     var body = "";
+    if (!visibleTabs().some(function (t) { return t[0] === UI.tab; })) UI.tab = "dash";
     if (UI.tab === "dash") body = renderDashboard();
+    else if (UI.tab === "cabinet") body = renderCabinet();
     else if (UI.tab === "entry") body = renderEntry();
     else if (UI.tab === "commissions") body = renderCommissions();
     else if (UI.tab === "team") body = renderTeam();
@@ -1207,6 +1651,10 @@ select, input[type=text], input[type=number], input[type=password] {
       await createMonth(key);
     });
 
+    root.querySelectorAll("[data-dash-city]").forEach(function (btn) {
+      btn.addEventListener("click", function () { UI.dashCity = btn.getAttribute("data-dash-city"); render(); });
+    });
+    if (UI.tab === "cabinet") bindCabinetEvents();
     if (UI.tab === "entry") bindEntryEvents();
     if (UI.tab === "team") bindTeamEvents();
     if (UI.tab === "settings") bindSettingsEvents();
@@ -1214,33 +1662,47 @@ select, input[type=text], input[type=number], input[type=password] {
   }
 
   function bindEntryEvents() {
-    var wk = root.querySelector("#f-week");
-    if (wk) wk.addEventListener("change", function () { draft.week = Number(wk.value); render(); });
+    var rlRop = root.querySelector("#rl-rop");
+    if (rlRop) rlRop.addEventListener("change", function () { ropLoginUi.ropId = rlRop.value; ropLoginUi.msg = ""; render(); });
+    var rlBtn = root.querySelector("#rl-btn");
+    if (rlBtn) {
+      var doRl = async function () {
+        var pin = root.querySelector("#rl-pin").value;
+        if (!pin || !ropLoginUi.ropId) return;
+        if (await ropLogin(ropLoginUi.ropId, pin)) {
+          AppState.rop = { id: ropLoginUi.ropId, pin: pin };
+          safeSession.set("rop-login", JSON.stringify(AppState.rop));
+          ropLoginUi.msg = ""; draft.key = "";
+        } else ropLoginUi.msg = "Неверный пин-код (или пин ещё не выдан).";
+        render();
+      };
+      rlBtn.addEventListener("click", doRl);
+      root.querySelector("#rl-pin").addEventListener("keydown", function (e) { if (e.key === "Enter") doRl(); });
+    }
+    var rlOut = root.querySelector("#rl-logout");
+    if (rlOut) rlOut.addEventListener("click", function (e) { e.preventDefault(); AppState.rop = null; safeSession.del("rop-login"); render(); });
+    if (entryScope().mode === "none") return;
+
+    var dt = root.querySelector("#f-date");
+    if (dt) dt.addEventListener("change", function () {
+      var v = dt.value; // YYYY-MM-DD
+      if (v && v.slice(0, 7) === AppState.currentMonth) { draft.day = Number(v.slice(8, 10)); render(); }
+    });
 
     var ropSel = root.querySelector("#f-rop");
     if (ropSel) ropSel.addEventListener("change", function () {
       draft.ropId = ropSel.value;
-      var teamAgents = AppState.agents.filter(function (a) { return a.ropId === draft.ropId; });
-      draft.agentId = teamAgents[0] ? teamAgents[0].id : null;
+      draft.agentId = null; draft.key = "";
       render();
     });
 
     var agentSel = root.querySelector("#f-agent");
-    if (agentSel) agentSel.addEventListener("change", function () {
-      draft.agentId = agentSel.value;
-      var existing = (AppState.monthEntries || []).find(function (e) { return e.agentId === draft.agentId && e.week === draft.week; });
-      if (existing) {
-        ACTIONS.forEach(function (a) { draft.counts[a.key] = existing.counts[a.key] || 0; });
-        draft.dealSum = existing.dealSum || 0;
-      }
-      render();
-    });
+    if (agentSel) agentSel.addEventListener("change", function () { draft.agentId = agentSel.value; render(); });
 
     root.querySelectorAll("[data-bump]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var key = btn.getAttribute("data-bump");
-        var delta = Number(btn.getAttribute("data-delta"));
-        draft.counts[key] = Math.max(0, (draft.counts[key] || 0) + delta);
+        draft.counts[key] = Math.max(0, (draft.counts[key] || 0) + Number(btn.getAttribute("data-delta")));
         render();
       });
     });
@@ -1253,19 +1715,29 @@ select, input[type=text], input[type=number], input[type=password] {
       if (!draft.agentId) return;
       var countsCopy = {};
       ACTIONS.forEach(function (a) { countsCopy[a.key] = draft.counts[a.key] || 0; });
-      var entry = { week: draft.week, agentId: draft.agentId, counts: countsCopy, dealSum: Number(draft.dealSum) || 0 };
-      await saveEntry(entry);
-      ACTIONS.forEach(function (a) { draft.counts[a.key] = 0; });
-      draft.dealSum = 0;
+      var ok = await saveEntry({ day: draft.day, agentId: draft.agentId, counts: countsCopy, dealSum: Number(draft.dealSum) || 0 });
+      if (ok) draft.key = ""; // перечитать из базы
       render();
     });
 
     var filterSel = root.querySelector("#filter-week");
     if (filterSel) filterSel.addEventListener("change", function () { UI.filterWeek = filterSel.value; render(); });
 
+    root.querySelectorAll("[data-edit-entry-agent]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var aid = btn.getAttribute("data-edit-entry-agent"), day = Number(btn.getAttribute("data-edit-entry-day"));
+        var ag = agentById(aid);
+        if (ag && ag.ropId) draft.ropId = ag.ropId;
+        draft.agentId = aid; draft.day = day; draft.key = "";
+        render();
+        window.scrollTo(0, 0);
+      });
+    });
     root.querySelectorAll("[data-del-entry-agent]").forEach(function (btn) {
       btn.addEventListener("click", async function () {
-        await deleteEntryDoc(btn.getAttribute("data-del-entry-agent"), Number(btn.getAttribute("data-del-entry-week")));
+        if (!confirm("Удалить запись за этот день?")) return;
+        await deleteEntryDoc(btn.getAttribute("data-del-entry-agent"), Number(btn.getAttribute("data-del-entry-day")));
+        draft.key = ""; render();
       });
     });
   }
@@ -1311,6 +1783,23 @@ select, input[type=text], input[type=number], input[type=password] {
       });
     });
 
+    root.querySelectorAll("[data-move-agent]").forEach(function (sel) {
+      sel.addEventListener("change", async function () {
+        var newRop = sel.value; if (!newRop) return;
+        var agentId = sel.getAttribute("data-move-agent");
+        var agent = agentById(agentId); if (!agent || agent.ropId === newRop) return;
+        var oldRop = agent.ropId;
+        var newAgents = AppState.agents.map(function (a) { return a.id === agentId ? Object.assign({}, a, { ropId: newRop }) : a; });
+        var newTeams = AppState.teams.map(function (t) {
+          if (t.id === oldRop) return Object.assign({}, t, { count: Math.max(0, (t.count || 0) - 1) });
+          if (t.id === newRop) return Object.assign({}, t, { count: (t.count || 0) + 1 });
+          return t;
+        });
+        await saveAgentsFull(newAgents);
+        await saveTeamsFull(newTeams);
+      });
+    });
+
     root.querySelectorAll("[data-del-agent]").forEach(function (btn) {
       btn.addEventListener("click", async function () {
         var agentId = btn.getAttribute("data-del-agent");
@@ -1325,6 +1814,17 @@ select, input[type=text], input[type=number], input[type=password] {
   }
 
   function bindSettingsEvents() {
+    var pinSubmit = root.querySelector("#settings-pin-submit");
+    if (pinSubmit) pinSubmit.addEventListener("click", async function () {
+      var pin = root.querySelector("#settings-pin-input").value;
+      if (!pin) return;
+      var ok = await tryAdminPin(pin);
+      if (!ok) ok = await setAdminPin("", pin); // первый вход — пин ещё не задан
+      if (ok) { AppState.isAdmin = true; AppState.adminPin = pin; safeSession.set("rop-admin", pin); adminPinMsg = ""; }
+      else { adminPinMsg = "Неверный пин-код."; }
+      render();
+    });
+    if (!AppState.isAdmin) return; // поля задизейблены, но на всякий случай не вешаем и обработчики сохранения
     function patchSettings(mutator) {
       var s = JSON.parse(JSON.stringify(AppState.monthSettings || defaultSettings()));
       mutator(s);
@@ -1350,6 +1850,16 @@ select, input[type=text], input[type=number], input[type=password] {
         });
       });
     });
+    var rStep = root.querySelector("#rating-step");
+    if (rStep) rStep.addEventListener("change", function () { patchSettings(function (s) { s.ratingRevStep = Number(rStep.value) || 50000; }); });
+    var rPts = root.querySelector("#rating-pts");
+    if (rPts) rPts.addEventListener("change", function () { patchSettings(function (s) { s.ratingRevPts = Number(rPts.value) || 0; }); });
+    root.querySelectorAll("[data-teamplan]").forEach(function (inp) {
+      inp.addEventListener("change", function () {
+        var id = inp.getAttribute("data-teamplan");
+        patchSettings(function (s) { s.teamRevenuePlans = s.teamRevenuePlans || {}; if (Number(inp.value) > 0) s.teamRevenuePlans[id] = Number(inp.value); else delete s.teamRevenuePlans[id]; });
+      });
+    });
     var revenuePlan = root.querySelector("#revenue-plan");
     if (revenuePlan) revenuePlan.addEventListener("change", function () { patchSettings(function (s) { s.revenuePlan = Number(revenuePlan.value) || 0; }); });
     root.querySelectorAll("[data-comm]").forEach(function (inp) {
@@ -1364,13 +1874,13 @@ select, input[type=text], input[type=number], input[type=password] {
       if (!pin) return;
       var ok = await tryAdminPin(pin);
       if (ok) {
-        AppState.isAdmin = true;
-        sessionStorage.setItem("rop-admin", "1");
+        AppState.isAdmin = true; AppState.adminPin = pin;
+        safeSession.set("rop-admin", pin);
         adminPinMsg = "";
       } else {
         // Пин ещё не задан вообще — первый ввод устанавливает его.
         var setOk = await setAdminPin("", pin);
-        if (setOk) { AppState.isAdmin = true; sessionStorage.setItem("rop-admin", "1"); adminPinMsg = ""; }
+        if (setOk) { AppState.isAdmin = true; AppState.adminPin = pin; safeSession.set("rop-admin", pin); adminPinMsg = ""; }
         else { adminPinMsg = "Неверный пин-код."; }
       }
       render();
@@ -1386,13 +1896,43 @@ select, input[type=text], input[type=number], input[type=password] {
       var statusEl = root.querySelector("#pin-change-status");
       if (!newPin) return;
       var ok = await setAdminPin(oldPin, newPin);
+      if (ok) { AppState.adminPin = newPin; safeSession.set("rop-admin", newPin); }
       statusEl.textContent = ok ? "Пин-код обновлён." : "Не удалось: неверный текущий пин.";
+    });
+
+    var rpinSet = root.querySelector("#rpin-set");
+    if (rpinSet) rpinSet.addEventListener("click", async function () {
+      var id = root.querySelector("#rpin-rop").value, pin = root.querySelector("#rpin-new").value.trim();
+      var st = root.querySelector("#rpin-status");
+      if (pin.length < 4) { st.textContent = "Пин — минимум 4 символа."; return; }
+      var { data, error } = await supa.rpc("admin_set_rop_pin", { p_admin_pin: AppState.adminPin, p_rop_id: id, p_new_pin: pin });
+      if (!error && data === true) {
+        var t = teamById(id);
+        await loadRopPinStatus(); render();
+        var st2 = root.querySelector("#rpin-status");
+        if (st2) st2.textContent = "Готово: пин для РОПа «" + (t ? t.name : id) + "» выдан. Передайте его лично.";
+      } else st.textContent = "Не удалось выдать пин" + (error ? ": " + error.message : " (выполнен ли supabase_roles_days.sql?).");
+    });
+
+    var apinSet = root.querySelector("#apin-set");
+    if (apinSet) apinSet.addEventListener("click", async function () {
+      var id = root.querySelector("#apin-agent").value, pin = root.querySelector("#apin-new").value.trim();
+      var st = root.querySelector("#apin-status");
+      if (pin.length < 4) { st.textContent = "Пин — минимум 4 символа."; return; }
+      var { data, error } = await supa.rpc("admin_set_agent_pin", { p_admin_pin: AppState.adminPin, p_agent_id: id, p_new_pin: pin });
+      if (!error && data === true) {
+        var a = agentById(id);
+        await loadAgentPinStatus();
+        render();
+        var st2 = root.querySelector("#apin-status");
+        if (st2) st2.textContent = "Готово: пин для «" + (a ? a.name : id) + "» выдан. Передайте его агенту лично.";
+      } else st.textContent = "Не удалось выдать пин" + (error ? ": " + error.message : " (проверьте, что выполнен supabase_agent_pins.sql).");
     });
 
     var logoutBtn = root.querySelector("#admin-logout-btn");
     if (logoutBtn) logoutBtn.addEventListener("click", function () {
-      AppState.isAdmin = false;
-      sessionStorage.removeItem("rop-admin");
+      AppState.isAdmin = false; AppState.adminPin = "";
+      safeSession.del("rop-admin");
       render();
     });
   }
