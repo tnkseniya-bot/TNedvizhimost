@@ -1469,6 +1469,8 @@ input:disabled, button:disabled { cursor: not-allowed; opacity: .7; }
      РЕНДЕР: ЭКСПОРТ (пин-код администратора)
   ============================================================ */
   var adminPinMsg = "";
+  var genPins = null; // список только что выданных пинов (в памяти, пока открыта вкладка)
+  function randomPin() { var a = new Uint32Array(1); crypto.getRandomValues(a); return String(100000 + (a[0] % 900000)); }
   function renderAdmin() {
     if (!AppState.isAdmin) {
       var html = '<div class="card"><h2 class="section-title" style="margin-top:0;">Доступ администратора</h2>' +
@@ -1515,6 +1517,16 @@ input:disabled, button:disabled { cursor: not-allowed; opacity: .7; }
       '<label>Новый пин<input type="text" id="apin-new" autocomplete="off"/></label></div>' +
       '<button class="btn-primary" id="apin-set">Выдать пин</button>' +
       '<p class="muted small" id="apin-status">Пин выдан: ' + AppState.agentPinIds.length + ' из ' + AppState.agents.length + ' агентов (отмечены ✓ в списке).</p></div>';
+
+    html2 += '<div class="card" style="margin-top:16px;"><h2 class="section-title" style="margin-top:0;">Сгенерировать пин-коды всем</h2>' +
+      '<p class="muted">Создаёт случайные 6-значные пины РОПам и агентам и один раз показывает список. Он нигде не сохраняется: скачайте его сразу и раздайте людям.</p>' +
+      '<label style="display:flex;gap:8px;align-items:center;margin-bottom:12px;"><input type="checkbox" id="gen-only-new" checked/> только тем, у кого пина ещё нет (иначе пины всех будут заменены)</label>' +
+      '<button class="btn-primary" id="gen-pins-btn">Сгенерировать</button>' +
+      '<p class="muted small" id="gen-status"></p>' +
+      (genPins ? '<div class="table-scroll"><table class="tbl"><thead><tr><th>Роль</th><th>Город</th><th>РОП</th><th>Имя</th><th>Пин</th></tr></thead><tbody>' +
+        genPins.map(function (r) { return '<tr><td>' + esc(r.role) + '</td><td>' + esc(r.city) + '</td><td>' + esc(r.team) + '</td><td>' + esc(r.name) + '</td><td class="rank">' + esc(r.pin) + '</td></tr>'; }).join("") +
+        '</tbody></table></div><button class="btn-primary" id="gen-download" style="margin-top:12px;">Скачать список (Excel)</button>' : '') +
+      '</div>';
     return html2;
   }
 
@@ -1633,7 +1645,7 @@ input:disabled, button:disabled { cursor: not-allowed; opacity: .7; }
   ============================================================ */
   function bindEvents() {
     root.querySelectorAll("[data-tab]").forEach(function (btn) {
-      btn.addEventListener("click", function () { UI.tab = btn.getAttribute("data-tab"); adminPinMsg = ""; render(); });
+      btn.addEventListener("click", function () { UI.tab = btn.getAttribute("data-tab"); adminPinMsg = ""; genPins = null; render(); });
     });
 
     var monthSelect = root.querySelector("#month-select");
@@ -1912,6 +1924,47 @@ input:disabled, button:disabled { cursor: not-allowed; opacity: .7; }
         var st2 = root.querySelector("#rpin-status");
         if (st2) st2.textContent = "Готово: пин для РОПа «" + (t ? t.name : id) + "» выдан. Передайте его лично.";
       } else st.textContent = "Не удалось выдать пин" + (error ? ": " + error.message : " (выполнен ли supabase_roles_days.sql?).");
+    });
+
+    var genBtn = root.querySelector("#gen-pins-btn");
+    if (genBtn) genBtn.addEventListener("click", async function () {
+      var onlyNew = root.querySelector("#gen-only-new").checked;
+      var st = root.querySelector("#gen-status");
+      var jobs = [];
+      AppState.teams.forEach(function (t) {
+        if (onlyNew && AppState.ropPinIds.indexOf(t.id) >= 0) return;
+        jobs.push({ role: "РОП", city: t.city, team: t.name, name: t.name, id: t.id, kind: "rop", pin: randomPin() });
+      });
+      AppState.agents.forEach(function (a) {
+        if (onlyNew && AppState.agentPinIds.indexOf(a.id) >= 0) return;
+        var t = teamById(a.ropId);
+        jobs.push({ role: "Агент", city: t ? t.city : "", team: t ? t.name : "", name: a.name, id: a.id, kind: "agent", pin: randomPin() });
+      });
+      if (!jobs.length) { st.textContent = "Всем уже выданы пины. Снимите галочку, чтобы выдать заново."; return; }
+      if (!onlyNew && !confirm("Старые пины ВСЕХ будут заменены новыми. Продолжить?")) return;
+      genBtn.disabled = true;
+      var done = [], failed = 0;
+      for (var i = 0; i < jobs.length; i += 8) {
+        st.textContent = "Выдаю пины… " + Math.min(i, jobs.length) + " из " + jobs.length;
+        var batch = jobs.slice(i, i + 8);
+        var res = await Promise.all(batch.map(function (j) {
+          return supa.rpc(j.kind === "rop" ? "admin_set_rop_pin" : "admin_set_agent_pin",
+            j.kind === "rop" ? { p_admin_pin: AppState.adminPin, p_rop_id: j.id, p_new_pin: j.pin } : { p_admin_pin: AppState.adminPin, p_agent_id: j.id, p_new_pin: j.pin });
+        }));
+        res.forEach(function (r, k) { if (!r.error && r.data === true) done.push(batch[k]); else failed++; });
+      }
+      genPins = done;
+      await loadAgentPinStatus(); await loadRopPinStatus();
+      render();
+      var st2 = root.querySelector("#gen-status");
+      if (st2) st2.textContent = "Готово: выдано " + done.length + (failed ? ", не удалось " + failed + " (проверьте миграции)" : "") + ". Скачайте список — после выхода с вкладки он исчезнет.";
+    });
+    var genDl = root.querySelector("#gen-download");
+    if (genDl) genDl.addEventListener("click", function () {
+      var rows = genPins.map(function (r) { return { Роль: r.role, Город: r.city, РОП: r.team, Имя: r.name, Пин: r.pin }; });
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Пины");
+      XLSX.writeFile(wb, "Т-Недвижимость_пины_" + new Date().toISOString().slice(0, 10) + ".xlsx");
     });
 
     var apinSet = root.querySelector("#apin-set");
