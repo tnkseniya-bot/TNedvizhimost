@@ -1125,7 +1125,27 @@ input:disabled, button:disabled { cursor: not-allowed; opacity: .7; }
   var cabLogin = { ropId: null, agentId: null, msg: "" };
   var cabPinMsg = "";
 
+  var cabRole = "agent";
   function renderCabinetLogin() {
+    var toggle = '<div class="seg" style="margin-top:0;"><button data-cab-role="agent" class="' + (cabRole === "agent" ? "active" : "") + '">Я агент</button>' +
+      '<button data-cab-role="rop" class="' + (cabRole === "rop" ? "active" : "") + '">Я РОП</button></div>';
+    if (cabRole === "rop") {
+      if (!ropLoginUi.ropId && AppState.teams.length) ropLoginUi.ropId = AppState.teams[0].id;
+      return toggle + '<div class="card" style="max-width:520px;"><h2 class="section-title" style="margin-top:0;">Вход РОПа</h2>' +
+        '<p class="muted">В кабинете вы видите результаты своей команды и свои показатели план/факт. Тот же пин-код позволяет вносить показатели по дням во вкладке «Ввод по дням».</p>' +
+        '<div class="form-row"><label>РОП<select id="cab-rop-sel">' + CITIES.map(function (city) {
+          var opts = AppState.teams.filter(function (t) { return t.city === city; }).map(function (t) {
+            return '<option value="' + t.id + '"' + (t.id === ropLoginUi.ropId ? " selected" : "") + '>' + esc(t.name) + '</option>';
+          }).join("");
+          return opts ? '<optgroup label="' + esc(city) + '">' + opts + '</optgroup>' : "";
+        }).join("") + '</select></label>' +
+        '<label>Пин-код<input type="password" id="cab-rop-pin" placeholder="••••" autocomplete="off"/></label></div>' +
+        '<button class="btn-primary" id="cab-rop-login-btn">Войти</button>' +
+        (ropLoginUi.msg ? '<p class="muted small" style="color:#B8492F;">' + esc(ropLoginUi.msg) + '</p>' : '') + '</div>';
+    }
+    return toggle + renderAgentLoginCard();
+  }
+  function renderAgentLoginCard() {
     if (!cabLogin.ropId && AppState.teams.length) cabLogin.ropId = AppState.teams[0].id;
     var teamAgents = AppState.agents.filter(function (a) { return a.ropId === cabLogin.ropId; });
     if (!teamAgents.some(function (a) { return a.id === cabLogin.agentId; })) cabLogin.agentId = teamAgents[0] ? teamAgents[0].id : null;
@@ -1151,7 +1171,82 @@ input:disabled, button:disabled { cursor: not-allowed; opacity: .7; }
     return html;
   }
 
+  function renderRopCabinet() {
+    var t = teamById(AppState.rop.id);
+    var settings = AppState.monthSettings || defaultSettings();
+    var ts = computeTeamStats().find(function (x) { return x.id === t.id; });
+    var teamEntries = (AppState.monthEntries || []).filter(function (e) { return entryTeamId(e) === t.id; });
+    var pointsPlan = settings.weeklyMin * settings.weeksPerMonth;
+    var html = '<div class="seg" style="margin-top:0;"><button class="active">РОП ' + esc(t.name) + ' · ' + esc(t.city) + '</button></div>';
+    html += '<p class="muted on-dark" style="margin-top:-6px;">Месяц: <b style="color:#fff;">' + esc(monthLabel(AppState.currentMonth)) + '</b>. Здесь только результаты вашей команды.</p>';
+
+    // мои показатели план / факт
+    var nextGap = "";
+    if (ts.totalPts < ts.th05) nextGap = "до бонуса 0,5%: " + fmtPts(ts.th05 - ts.totalPts) + " б.";
+    else if (ts.totalPts < ts.th1) nextGap = "до 1%: " + fmtPts(ts.th1 - ts.totalPts) + " б.";
+    else if (ts.totalPts < ts.th2) nextGap = "до 2%: " + fmtPts(ts.th2 - ts.totalPts) + " б.";
+    else nextGap = "максимальный бонус 2% достигнут";
+    html += '<h2 class="section-title">Мои показатели: план / факт</h2>';
+    html += '<div class="seal-grid"><div class="seal-card"><div><div class="seal-pair">' +
+      sealSvg(ts.progress, ts.tierLabel, ts.totalPts, 112) +
+      sealSvg(Math.min(1, ts.revPct / 100), "", 0, 112, { num: Math.round(ts.revPct) + "%", unit: "валовка" }) +
+      '</div></div><div class="seal-meta"><h3>' + esc(t.name) + '</h3><p class="muted">' + ts.agentCount + ' агентов</p>' +
+      '<div class="bonus-row"><span>Баллы: <b>' + esc(fmtPts(ts.totalPts)) + ' / ' + esc(fmtPts(ts.base)) + '</b> (' + Math.round(ts.ptsPct) + '%)</span></div>' +
+      '<div class="bonus-row"><span>Вал: <b>' + esc(fmtRub(ts.revenue)) + ' / ' + esc(fmtRub(ts.revPlan)) + '</b> (' + Math.round(ts.revPct) + '%)</span></div>' +
+      '<div class="bonus-final">Мой бонус: <b>' + esc(fmtRub(ts.bonus)) + '</b> (' + esc(ts.tierLabel) + ') · ' + esc(nextGap) + '</div>' +
+      '</div></div></div>';
+    html += '<div class="dash-top" style="margin-top:12px;">' +
+      '<div class="kpi"><span class="kpi-label">Баллы: факт / план</span><span class="kpi-value">' + esc(fmtPts(ts.totalPts)) + ' / ' + esc(fmtPts(ts.base)) + '</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Валовка: факт / план</span><span class="kpi-value gold">' + esc(fmtRub(ts.revenue)) + ' / ' + esc(fmtRub(ts.revPlan)) + '</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Сделок</span><span class="kpi-value">' + ts.deals + '</span></div>' +
+      '<div class="kpi"><span class="kpi-label">Пороги бонуса (баллы)</span><span class="kpi-value" style="font-size:14px;">0,5% ≥ ' + esc(fmtPts(ts.th05)) + ' · 1% ≥ ' + esc(fmtPts(ts.th1)) + ' · 2% ≥ ' + esc(fmtPts(ts.th2)) + '</span></div>' +
+      '</div>';
+
+    // по неделям
+    html += '<h2 class="section-title">Команда по неделям</h2><div class="table-scroll"><table class="tbl"><thead><tr><th>Неделя</th><th>Баллы команды</th><th>Норма (агентов × ' + esc(settings.weeklyMin) + ')</th><th>Выполнение</th><th>Валовка</th><th>Сделок</th></tr></thead><tbody>';
+    WEEKS.forEach(function (w) {
+      var we = teamEntries.filter(function (e) { return e.week === w; });
+      var p = we.reduce(function (a, e) { return a + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts); }, 0);
+      var rv = we.reduce(function (a, e) { return a + (e.dealSum || 0); }, 0);
+      var dl = we.reduce(function (a, e) { return a + (e.counts.deal || 0); }, 0);
+      var norm = (t.count || 0) * settings.weeklyMin;
+      var pct = norm > 0 ? p / norm * 100 : 0;
+      html += '<tr><td>' + w + '</td><td class="good">' + esc(fmtPts(p)) + '</td><td>' + esc(fmtPts(norm)) + '</td><td>' + barHtml(pct) + '<small>' + Math.round(pct) + '%</small></td><td class="gold">' + esc(fmtRub(rv)) + '</td><td>' + dl + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+
+    // по действиям
+    html += '<h2 class="section-title">Действия команды за месяц</h2><div class="table-scroll"><table class="tbl"><thead><tr>' +
+      ACTIONS.map(function (a) { return '<th>' + esc(a.short) + '</th>'; }).join("") + '</tr></thead><tbody><tr>' +
+      ACTIONS.map(function (a) { return '<td>' + ts.catCounts[a.key] + '</td>'; }).join("") + '</tr></tbody></table></div>';
+
+    // агенты команды
+    var ids = {};
+    AppState.agents.forEach(function (a) { if (a.ropId === t.id) ids[a.id] = true; });
+    teamEntries.forEach(function (e) { ids[e.agentId] = true; });
+    var rows = Object.keys(ids).map(function (id) {
+      var a = agentById(id); if (!a) return null;
+      var g = gradeFromData(a, { settings: settings, entries: teamEntries });
+      var ae = teamEntries.filter(function (e) { return e.agentId === id; });
+      var wk = WEEKS.map(function (w) { return ae.filter(function (e) { return e.week === w; }).reduce(function (s2, e) { return s2 + entryPoints(e.counts, settings.points, e.week, settings.weekBoosts); }, 0); });
+      return { a: a, g: g, wk: wk, current: a.ropId === t.id };
+    }).filter(Boolean).sort(function (x, y) { return y.g.pts - x.g.pts; });
+    html += '<h2 class="section-title">Агенты команды</h2><div class="table-scroll"><table class="tbl"><thead><tr><th>#</th><th>Агент</th>' +
+      WEEKS.map(function (w) { return '<th>Нед. ' + w + '</th>'; }).join("") +
+      '<th>Баллы (план ' + esc(pointsPlan) + ')</th><th>Валовка (план ' + esc(fmtRub(settings.revenuePlan)) + ')</th><th>% плана</th><th>Уровень</th><th>Сделок</th></tr></thead><tbody>';
+    rows.forEach(function (r, i) {
+      html += '<tr><td class="rank">' + (i + 1) + '</td><td class="rowname">' + esc(r.a.name) + (r.current ? '' : ' <small>(перешёл в другую команду)</small>') + '</td>' +
+        r.wk.map(function (v) { return '<td class="' + (v >= settings.weeklyMin ? "good" : "") + '">' + esc(fmtPts(v)) + '</td>'; }).join("") +
+        '<td class="good">' + esc(fmtPts(r.g.pts)) + '</td><td class="gold">' + esc(fmtRub(r.g.revenue)) + '</td><td>' + Math.round(r.g.pct) + '%</td><td class="rank">' + esc(r.g.tier) + '</td><td>' + r.g.deals + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '<p class="muted on-dark small">Данные агента показаны только по вашей команде. Если агент перешёл к вам или от вас, считается его результат внутри этой команды.</p>';
+    html += '<button class="btn-ghost" id="cab-rop-logout" style="margin-top:8px;">Выйти</button>';
+    return html;
+  }
+
   function renderCabinet() {
+    if (AppState.rop && teamById(AppState.rop.id)) return renderRopCabinet();
     if (!AppState.me || !agentById(AppState.me.id)) return renderCabinetLogin();
     var agent = agentById(AppState.me.id);
     var team = teamById(agent.ropId);
@@ -1232,6 +1327,28 @@ input:disabled, button:disabled { cursor: not-allowed; opacity: .7; }
   }
 
   function bindCabinetEvents() {
+    root.querySelectorAll("[data-cab-role]").forEach(function (b) {
+      b.addEventListener("click", function () { cabRole = b.getAttribute("data-cab-role"); render(); });
+    });
+    var crs = root.querySelector("#cab-rop-sel");
+    if (crs) crs.addEventListener("change", function () { ropLoginUi.ropId = crs.value; ropLoginUi.msg = ""; render(); });
+    var crb = root.querySelector("#cab-rop-login-btn");
+    if (crb) {
+      var doRopLogin = async function () {
+        var pin = root.querySelector("#cab-rop-pin").value;
+        if (!pin || !ropLoginUi.ropId) return;
+        if (await ropLogin(ropLoginUi.ropId, pin)) {
+          AppState.rop = { id: ropLoginUi.ropId, pin: pin };
+          safeSession.set("rop-login", JSON.stringify(AppState.rop));
+          ropLoginUi.msg = ""; draft.key = "";
+        } else ropLoginUi.msg = "Неверный пин-код (или пин ещё не выдан).";
+        render();
+      };
+      crb.addEventListener("click", doRopLogin);
+      root.querySelector("#cab-rop-pin").addEventListener("keydown", function (e) { if (e.key === "Enter") doRopLogin(); });
+    }
+    var crOut = root.querySelector("#cab-rop-logout");
+    if (crOut) crOut.addEventListener("click", function () { AppState.rop = null; safeSession.del("rop-login"); render(); });
     var rop = root.querySelector("#cab-rop");
     if (rop) rop.addEventListener("change", function () { cabLogin.ropId = rop.value; cabLogin.agentId = null; cabLogin.msg = ""; render(); });
     var ag = root.querySelector("#cab-agent");
